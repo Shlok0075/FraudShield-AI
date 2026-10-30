@@ -1,0 +1,107 @@
+{
+  "feature_version": "v1",
+  "engine_params": {
+    "feature_version": "v1",
+    "groups": [
+      "core"
+    ],
+    "label_delay_s": 86400.0,
+    "prior_fraud_rate": 0.0008353477026759417,
+    "smoothing_m": 20.0,
+    "unusual_hours": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "geo_change_km": 50.0
+  },
+  "numeric_features": [
+    "amount",
+    "log_amount",
+    "user_txn_count_prior",
+    "is_first_txn",
+    "amount_vs_user_avg",
+    "amount_zscore",
+    "txn_count_1m",
+    "txn_count_5m",
+    "txn_count_1h",
+    "txn_count_24h",
+    "amount_sum_1h",
+    "amount_sum_24h",
+    "time_since_last_txn_s",
+    "account_age_s",
+    "hour_of_day",
+    "day_of_week",
+    "is_weekend",
+    "unusual_hour",
+    "counterparty_txn_count_prior",
+    "user_fraud_rate_prior",
+    "counterparty_fraud_rate_prior"
+  ],
+  "categorical_features": [
+    "txn_type"
+  ],
+  "categories": {
+    "txn_type": [
+      "CASH_IN",
+      "CASH_OUT",
+      "DEBIT",
+      "PAYMENT",
+      "TRANSFER"
+    ]
+  },
+  "output_columns": [
+    "amount",
+    "log_amount",
+    "user_txn_count_prior",
+    "is_first_txn",
+    "amount_vs_user_avg",
+    "amount_zscore",
+    "txn_count_1m",
+    "txn_count_5m",
+    "txn_count_1h",
+    "txn_count_24h",
+    "amount_sum_1h",
+    "amount_sum_24h",
+    "time_since_last_txn_s",
+    "account_age_s",
+    "hour_of_day",
+    "day_of_week",
+    "is_weekend",
+    "unusual_hour",
+    "counterparty_txn_count_prior",
+    "user_fraud_rate_prior",
+    "counterparty_fraud_rate_prior",
+    "txn_type=CASH_IN",
+    "txn_type=CASH_OUT",
+    "txn_type=DEBIT",
+    "txn_type=PAYMENT",
+    "txn_type=TRANSFER"
+  ],
+  "medians": {
+    "amount": 74928.42,
+    "log_amount": 11.224301882770543,
+    "user_txn_count_prior": 0.0,
+    "is_first_txn": 1.0,
+    "amount_vs_user_avg": 1.0,
+    "amount_zscore": 0.0,
+    "txn_count_1m": 0.0,
+    "txn_count_5m": 0.0,
+    "txn_count_1h": 0.0,
+    "txn_count_24h": 0.0,
+    "amount_sum_1h": 0.0,
+    "amount_sum_24h": 0.0,
+    "time_since_last_txn_s": 2592000.0,
+    "account_age_s": 0.0,
+    "hour_of_day": 15.0,
+    "day_of_week": 2.0,
+    "is_weekend": 0.0,
+    "unusual_hour": 0.0,
+    "counterparty_txn_count_prior": 2.0,
+    "user_fraud_rate_prior": 0.0008353477026759417,
+    "counterparty_fraud_rate_prior": 0.0008353477026759417
+  }
+}

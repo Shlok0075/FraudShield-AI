@@ -1,0 +1,3899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FraudShield AI &mdash; Complete Project Report</title>
+<style>
+  /* ---------- print layout ---------- */
+  @page { size: A4; margin: 20mm 16mm 18mm 16mm; }
+
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    font-family: "Georgia", "Times New Roman", serif;
+    font-size: 10.5pt;
+    line-height: 1.5;
+    color: #16202b;
+    background: #fff;
+    margin: 0 auto;
+    max-width: 190mm;
+    padding: 16mm 8mm;
+  }
+
+  /* ---------- headings ---------- */
+  h1 {
+    font-size: 24pt; text-align: center; margin: 0 0 6pt;
+    border-bottom: 3px solid #16202b; padding-bottom: 8pt; letter-spacing: .2px;
+  }
+  h1 + p { text-align: center; color: #46586b; font-size: 11.5pt; margin-top: 2pt; }
+  h1 + h3 { text-align: center; border: 0; margin-top: 2pt; }
+
+  h2 {
+    font-size: 15pt; margin: 22pt 0 8pt; padding-bottom: 4pt;
+    border-bottom: 1.5px solid #8fa3b5; color: #0f1b26;
+  }
+  h2.page-break-before { page-break-before: always; break-before: page; }
+
+  h3 { font-size: 12pt; margin: 14pt 0 5pt; color: #1d3346; }
+  h4 { font-size: 11pt; margin: 11pt 0 4pt; color: #2b4257; }
+
+  p { margin: 5pt 0; text-align: justify; }
+  strong { color: #0f1b26; }
+
+  /* ---------- code ---------- */
+  code {
+    font-family: "Consolas", "SF Mono", "Courier New", monospace;
+    font-size: 8.8pt; background: #f1f4f7; padding: 1px 4px;
+    border-radius: 3px; border: 1px solid #dde3ea;
+  }
+  pre {
+    background: #f7f9fb; border: 1px solid #d7dfe8; border-left: 4px solid #4a6b8a;
+    padding: 8pt 10pt; border-radius: 4px; overflow-x: auto;
+    page-break-inside: avoid; break-inside: avoid;
+  }
+  pre code { background: none; border: 0; padding: 0; font-size: 8.4pt; line-height: 1.4; }
+
+  /* ---------- tables: the core of the report ---------- */
+  table {
+    width: 100%; border-collapse: collapse; margin: 9pt 0 12pt;
+    font-size: 8.9pt; page-break-inside: auto; break-inside: auto;
+  }
+  /* repeat the header on every page a long table spans */
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  tr { page-break-inside: avoid; break-inside: avoid; }
+  th {
+    background: #e7edf3; border: 1px solid #b8c6d3; padding: 4pt 5pt;
+    text-align: left; font-weight: bold; color: #10202e;
+  }
+  td { border: 1px solid #c8d3dd; padding: 3.5pt 5pt; vertical-align: top; }
+  tbody tr:nth-child(even) { background: #f7fafc; }
+
+  /* ---------- blockquote (disclaimer) ---------- */
+  blockquote {
+    margin: 12pt 0; padding: 9pt 12pt;
+    background: #fff8e6; border: 1px solid #e0c78a;
+    border-left: 5px solid #c8961e; border-radius: 3px;
+    page-break-inside: avoid; break-inside: avoid;
+  }
+  blockquote h2 { border: 0; margin: 0 0 5pt; font-size: 11.5pt; }
+  blockquote p { margin: 3pt 0; font-size: 9.4pt; text-align: left; }
+
+  hr { border: 0; border-top: 1px solid #c8d3dd; margin: 14pt 0; }
+  ul, ol { margin: 5pt 0; padding-left: 20pt; }
+  li { margin: 2.5pt 0; }
+
+  a { color: #14507d; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---------- screen-only view button ---------- */
+  .no-print {
+    position: fixed; top: 14px; right: 14px;
+    background: #16202b; color: #fff; border: 0; cursor: pointer;
+    padding: 9px 15px; border-radius: 6px; font-size: 12px;
+    font-family: system-ui, sans-serif; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+  .no-print:hover { background: #2b3d4f; }
+  @media print { .no-print { display: none; } }
+</style>
+</head>
+<body>
+<button class="no-print" onclick="window.print()">Print / Save as PDF</button>
+<h1 id="fraudshield-ai-complete-project-report">FraudShield AI — Complete Project Report</h1>
+<h3 id="intelligent-online-transaction-fraud-detection-and-real-time-monitoring-system">Intelligent Online Transaction Fraud Detection and Real-Time Monitoring System</h3>
+<p><strong>Project type:</strong> B.Tech Final Year Academic Prototype
+<strong>Report scope:</strong> Full system — problem, data, machine learning, backend, frontend, security, testing
+<strong>Prepared from:</strong> the actual source code, trained model artifacts, experiment results and a live running instance</p>
+<hr />
+<blockquote>
+<h2 id="academic-disclaimer" class="page-break-before">Academic Disclaimer</h2>
+<p>FraudShield AI is an <strong>academic prototype</strong>, not a production banking system. It operates exclusively on
+<strong>public and synthetic data</strong>. No real card numbers, CVVs, OTPs, merchant credentials or banking details
+appear anywhere in this project — not in the code, not in the datasets, not in the test fixtures.</p>
+<p>All transaction identifiers, users, devices, locations, amounts and timestamps are fabricated. The performance
+figures in this report are <strong>academic results on public/synthetic datasets</strong> and must not be read as evidence of
+real-world banking effectiveness.</p>
+</blockquote>
+<hr />
+<h2 id="table-of-contents" class="page-break-before">Table of Contents</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Section</th>
+<th>Page topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><a href="#1-introduction-and-problem-statement">Introduction and Problem Statement</a></td>
+<td>Why fraud detection matters</td>
+</tr>
+<tr>
+<td>2</td>
+<td><a href="#2-objectives">Objectives</a></td>
+<td>What the project set out to do</td>
+</tr>
+<tr>
+<td>3</td>
+<td><a href="#3-scope-and-non-goals">Scope and Non-Goals</a></td>
+<td>Honest boundaries</td>
+</tr>
+<tr>
+<td>4</td>
+<td><a href="#4-glossary-of-every-term-used">Glossary of Terms</a></td>
+<td><strong>Meaning of every technical term</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td><a href="#5-system-architecture">System Architecture</a></td>
+<td>How the pieces fit together</td>
+</tr>
+<tr>
+<td>6</td>
+<td><a href="#6-technology-stack-and-why">Technology Stack</a></td>
+<td>Tools and rationale</td>
+</tr>
+<tr>
+<td>7</td>
+<td><a href="#7-the-paysim-dataset">Dataset</a></td>
+<td>Data used for training</td>
+</tr>
+<tr>
+<td>8</td>
+<td><a href="#8-data-leakage-prevention">Data Leakage Prevention</a></td>
+<td>Rigour in evaluation</td>
+</tr>
+<tr>
+<td>9</td>
+<td><a href="#9-feature-engineering-the-26-live-features">Feature Engineering</a></td>
+<td>What the model sees</td>
+</tr>
+<tr>
+<td>10</td>
+<td><a href="#10-model-development-and-evaluation">Model Development and Evaluation</a></td>
+<td>8 models compared</td>
+</tr>
+<tr>
+<td>11</td>
+<td><a href="#11-the-hybrid-risk-engine">Hybrid Risk Engine</a></td>
+<td>How the final score is made</td>
+</tr>
+<tr>
+<td>12</td>
+<td><a href="#12-backend-api-reference">Backend API</a></td>
+<td>44 endpoints</td>
+</tr>
+<tr>
+<td>13</td>
+<td><a href="#13-database-design">Database Design</a></td>
+<td>14 tables</td>
+</tr>
+<tr>
+<td>14</td>
+<td><a href="#14-frontend-dashboard">Frontend Dashboard</a></td>
+<td>8 pages</td>
+</tr>
+<tr>
+<td>15</td>
+<td><a href="#15-real-time-architecture">Real-Time Architecture</a></td>
+<td>WebSocket + live feed</td>
+</tr>
+<tr>
+<td>16</td>
+<td><a href="#16-security-controls">Security</a></td>
+<td>Controls and defences</td>
+</tr>
+<tr>
+<td>17</td>
+<td><a href="#17-audit-trail-and-accountability">Audit Trail</a></td>
+<td>Who did what</td>
+</tr>
+<tr>
+<td>18</td>
+<td><a href="#18-testing-strategy-and-results">Testing</a></td>
+<td>95 automated tests</td>
+</tr>
+<tr>
+<td>19</td>
+<td><a href="#19-how-to-run-the-system">How to Run</a></td>
+<td>Reproduction steps</td>
+</tr>
+<tr>
+<td>20</td>
+<td><a href="#20-results-summary">Results Summary</a></td>
+<td>Headline numbers</td>
+</tr>
+<tr>
+<td>21</td>
+<td><a href="#21-limitations-and-honest-caveats">Limitations</a></td>
+<td>What it cannot do</td>
+</tr>
+<tr>
+<td>22</td>
+<td><a href="#22-future-work">Future Work</a></td>
+<td>Next steps</td>
+</tr>
+<tr>
+<td>23</td>
+<td><a href="#23-conclusion">Conclusion</a></td>
+<td>Final assessment</td>
+</tr>
+<tr>
+<td>A</td>
+<td><a href="#appendix-a-complete-file-map">Appendix A — File Map</a></td>
+<td>Where everything lives</td>
+</tr>
+<tr>
+<td>B</td>
+<td><a href="#appendix-b-one-page-quick-reference">Appendix B — One-Page Quick Reference</a></td>
+<td>Revision card</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-introduction-and-problem-statement" class="page-break-before">1. Introduction and Problem Statement</h2>
+<h3 id="11-the-problem">1.1 The problem</h3>
+<p>Card-not-present (CNP) fraud — fraud committed using stolen card details on online and contactless channels —
+is the fastest-growing category of payment fraud worldwide. Banks and payment processors lose billions of dollars
+annually to it, and the loss falls on merchants, issuers and cardholders alike.</p>
+<p>The core difficulty is not <em>detecting</em> obviously fraudulent transactions. It is the statistical shape of the
+problem:</p>
+<ul>
+<li><strong>Fraud is rare.</strong> In the dataset used here, roughly <strong>1 transaction in every 774 is fraudulent</strong> (0.129%).</li>
+<li><strong>Fraud is not random noise.</strong> It arrives in <em>patterns</em> — bursts of small test transactions, a sudden change of
+  device and geography together, a sudden spike in amount, a transaction at an hour the account has never been
+  active.</li>
+<li><strong>Missing fraud is expensive.</strong> A real fraudulent transaction that passes through costs the institution far
+  more than a false alarm that a human analyst dismisses in ten seconds.</li>
+</ul>
+<p>This combination — extreme class imbalance plus subtle, multi-signal behavioural patterns — is why a naive
+rule-based or threshold-based system is not sufficient, and why the problem is a genuine machine-learning problem
+rather than a lookup problem.</p>
+<h3 id="12-why-static-batch-analysis-is-not-enough">1.2 Why static batch analysis is not enough</h3>
+<p>Traditional fraud systems score transactions <strong>after the fact</strong>, in nightly batches. This creates two failures:</p>
+<ol>
+<li><strong>Detection lag.</strong> A fraudster performing a burst of 20 transactions in 4 minutes is stopped on transaction
+   number 20, not number 2. The damage is already done.</li>
+<li><strong>No behavioural memory.</strong> Batch scoring treats each transaction independently. It cannot know that this
+   account has never transacted from this device, or that this location is 4,000 km from the previous one,
+   because it has no point-in-time view of the account's own history.</li>
+</ol>
+<p>FraudShield AI addresses both: every transaction is scored <strong>synchronously as it arrives</strong>, against features
+computed from that user's history <strong>up to that exact moment</strong>.</p>
+<h3 id="13-what-this-project-delivers">1.3 What this project delivers</h3>
+<p>A working web platform that:</p>
+<ul>
+<li>ingests a transaction,</li>
+<li>computes 26 behavioural features from the account's history <em>as of that instant</em>,</li>
+<li>scores it using a <strong>hybrid</strong> of a supervised XGBoost model, an unsupervised Isolation Forest, a deterministic
+  behavioural score and seven explicit fraud rules,</li>
+<li>produces a single <strong>0–100 risk score</strong>, a <strong>risk level</strong> and a <strong>decision</strong> (ALLOW / REVIEW / BLOCK),</li>
+<li>explains itself in plain language,</li>
+<li>raises an alert and opens an investigation case when warranted,</li>
+<li>and streams the result to an administrator's dashboard in real time.</li>
+</ul>
+<p>It is backed by a genuine public-dataset benchmark: the Kaggle <strong>PaySim</strong> dataset, 6.36 million transactions,
+evaluated with 8 model variants under a leak-free, time-aware protocol.</p>
+<hr />
+<h2 id="2-objectives" class="page-break-before">2. Objectives</h2>
+<p>The project was structured around the following objectives.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Objective</th>
+<th>How it was achieved</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>O1</td>
+<td>Build a real, leak-free public-dataset benchmark</td>
+<td>PaySim ingested, 26 point-in-time features, chronological split, 8 models compared</td>
+<td>Achieved</td>
+</tr>
+<tr>
+<td>O2</td>
+<td>Select a model on evidence, not preference</td>
+<td>8 variants × 4 operating modes compared on PR-AUC / ROC-AUC / cost</td>
+<td>Achieved</td>
+</tr>
+<tr>
+<td>O3</td>
+<td>Score transactions in real time, not nightly</td>
+<td>Synchronous <code>POST /transactions/predict</code> with an in-process live feed</td>
+<td>Achieved</td>
+</tr>
+<tr>
+<td>O4</td>
+<td>Make the model explainable</td>
+<td>SHAP TreeExplainer + plain-language reasons + per-signal contribution breakdown</td>
+<td>Achieved</td>
+</tr>
+<tr>
+<td>O5</td>
+<td>Combine statistical and deterministic detection</td>
+<td>Hybrid engine: ML + anomaly + behavioural + 7 rules, tuned weights</td>
+<td>Achieved</td>
+</tr>
+<tr>
+<td>O6</td>
+<td>Provide a usable analyst workflow</td>
+<td>Alert → Case → Note → Feedback → retraining manifest</td>
+<td>Achieved</td>
+</tr>
+<tr>
+<td>O7</td>
+<td>Enforce access control</td>
+<td>JWT + bcrypt + role-based access control on every route</td>
+<td>Achieved</td>
+</tr>
+<tr>
+<td>O8</td>
+<td>Guarantee accountability</td>
+<td>Audit log covering every admin action <strong>and</strong> failed logins</td>
+<td>Achieved</td>
+</tr>
+<tr>
+<td>O9</td>
+<td>Detect model degradation over time</td>
+<td>PSI drift monitoring + model registry with activation metadata</td>
+<td>Achieved</td>
+</tr>
+<tr>
+<td>O10</td>
+<td>Prove the system works, not just that it starts</td>
+<td>95 automated tests (46 backend + 49 ML)</td>
+<td>Achieved</td>
+</tr>
+</tbody>
+</table>
+<h3 id="21-non-objectives-explicitly-out-of-scope">2.1 Non-objectives (explicitly out of scope)</h3>
+<ul>
+<li>Handling real payment card data — permanently out of scope, for legal and ethical reasons.</li>
+<li>Building a payment gateway or transaction authoriser. This system <em>scores</em>; it does not <em>move money</em>.</li>
+<li>Meeting PCI-DSS, RBI or any regulatory certification.</li>
+<li>Production-scale throughput. The system is designed and tested for demonstration and academic evaluation.</li>
+</ul>
+<hr />
+<h2 id="3-scope-and-non-goals" class="page-break-before">3. Scope and Non-Goals</h2>
+<p><strong>In scope:</strong> transaction scoring, feature engineering, model training and evaluation, real-time inference,
+alerting, case management, feedback capture, drift monitoring, access control, audit logging, and a web dashboard.</p>
+<p><strong>Deliberately not in scope, with reasons:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Excluded</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Real card data</td>
+<td>Legally and ethically prohibited in an academic project; no public repository may contain PAN/CVV</td>
+</tr>
+<tr>
+<td>Real-time payment authorisation</td>
+<td>Requires banking partnerships, PCI-DSS Level 1 certification, and HSM infrastructure</td>
+</tr>
+<tr>
+<td>Multi-tenant SaaS deployment</td>
+<td>Adds billing/isolation concerns that have no bearing on the research contribution</td>
+</tr>
+<tr>
+<td>Microservices</td>
+<td>Explicitly rejected as a design decision — see §5.5</td>
+</tr>
+</tbody>
+</table>
+<p>This section is deliberately explicit because academic reports often overstate scope. The honest claim is:
+<em>this is a complete, working, well-tested fraud-detection prototype evaluated on a real public dataset</em>, not a bank.</p>
+<hr />
+<h2 id="4-glossary-of-every-term-used" class="page-break-before">4. Glossary of Every Term Used</h2>
+<p>This section defines every technical term appearing in this report, in plain language. It is intended to be read
+standalone, so a reader unfamiliar with machine learning or web engineering can follow the rest of the document.</p>
+<h3 id="41-fraud-and-risk-concepts">4.1 Fraud and Risk Concepts</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Fraud</strong></td>
+<td>Deliberately deceptive activity for financial gain. In this project, a transaction is fraudulent when an authorised user did <em>not</em> make it — the card details or account were used by someone else.</td>
+</tr>
+<tr>
+<td><strong>Fraudster</strong></td>
+<td>The person committing fraud. In this project, always synthetic — there are no real attackers.</td>
+</tr>
+<tr>
+<td><strong>Card-Not-Present (CNP) fraud</strong></td>
+<td>Fraud on an online or contactless channel where the physical card is never presented, so the merchant cannot verify the signature. The dominant modern fraud type.</td>
+</tr>
+<tr>
+<td><strong>Legitimate transaction</strong></td>
+<td>A genuine transaction made by the real account holder. Also called a <em>negative</em> or <em>negative class</em> in ML. In this dataset, 99.871% of all transactions.</td>
+</tr>
+<tr>
+<td><strong>Class imbalance</strong></td>
+<td>When one class (legitimate) hugely outnumbers the other (fraud). Here 6,354,407 legitimate vs 8,213 fraudulent. Imbalance is the single biggest difficulty in fraud detection.</td>
+</tr>
+<tr>
+<td><strong>Imbalance ratio</strong></td>
+<td>The ratio of legitimate to fraudulent transactions — here about <strong>774 : 1</strong>. A model that simply always predicts "legitimate" would score 99.87% accuracy while detecting zero fraud.</td>
+</tr>
+<tr>
+<td><strong>False positive (FP)</strong></td>
+<td>The system flags a <strong>legitimate</strong> transaction as fraudulent. Costs analyst time and annoys the customer. Formally: predicted fraud, actually legitimate.</td>
+</tr>
+<tr>
+<td><strong>False negative (FN)</strong></td>
+<td>The system passes a <strong>genuinely fraudulent</strong> transaction. This is the dangerous error — the loss occurs. Formally: predicted legitimate, actually fraud.</td>
+</tr>
+<tr>
+<td><strong>True positive (TP)</strong></td>
+<td>Fraud correctly caught. The outcome we are trying to maximise.</td>
+</tr>
+<tr>
+<td><strong>True negative (TN)</strong></td>
+<td>A legitimate transaction correctly passed. The desired background behaviour.</td>
+</tr>
+<tr>
+<td><strong>Precision</strong></td>
+<td>Of the transactions the system flagged, what fraction were <em>actually</em> fraud? <code>Precision = TP / (TP + FP)</code>. High precision means "when I say fraud, I'm usually right."</td>
+</tr>
+<tr>
+<td><strong>Recall</strong></td>
+<td>Of all the fraud that actually happened, what fraction did the system catch? <code>Recall = TP / (TP + FN)</code>. High recall means "I don't miss fraud."</td>
+</tr>
+<tr>
+<td><strong>Precision–Recall trade-off</strong></td>
+<td>Precision and recall normally move in opposition. Lowering the decision threshold catches more fraud (recall up) but also flags more legitimate traffic (precision down). Choosing where to sit on this curve is a business decision, not a technical one.</td>
+</tr>
+<tr>
+<td><strong>F1 score</strong></td>
+<td>The harmonic mean of precision and recall: <code>F1 = 2 × (P × R) / (P + R)</code>. It is high only when <em>both</em> are high, so it punishes a model that is excellent at one and useless at the other.</td>
+</tr>
+<tr>
+<td><strong>Threshold</strong></td>
+<td>The cut-off score above which a transaction is treated as fraud. Lowering it raises recall and lowers precision. FraudShield AI uses two: a <em>review</em> threshold and a <em>block</em> threshold.</td>
+</tr>
+<tr>
+<td><strong>Risk level</strong></td>
+<td>The band a 0–100 score falls into: LOW (0–29), MEDIUM (30–59), HIGH (60–79), CRITICAL (80–100).</td>
+</tr>
+<tr>
+<td><strong>Decision</strong></td>
+<td>The action taken: <strong>ALLOW</strong> (let it through), <strong>REVIEW</strong> (hold for a human), <strong>BLOCK</strong> (refuse).</td>
+</tr>
+<tr>
+<td><strong>Fraud ring</strong></td>
+<td>A group of accounts colluding to launder stolen funds, often by passing small amounts between themselves to appear normal.</td>
+</tr>
+<tr>
+<td><strong>Card testing</strong></td>
+<td>An attacker making several tiny transactions to confirm a stolen card number is live before using it for a real purchase.</td>
+</tr>
+<tr>
+<td><strong>Transaction velocity</strong></td>
+<td>How <em>fast</em> transactions are occurring — the rate of change, not just the count. Six transactions in 5 minutes is a different signal from six in 6 months.</td>
+</tr>
+<tr>
+<td><strong>Impossible travel</strong></td>
+<td>A user appearing in two locations too far apart for the time elapsed between the two transactions — implying the account is being used from two places at once.</td>
+</tr>
+<tr>
+<td><strong>First-party fraud</strong></td>
+<td>Fraud committed by the account holder themselves. <strong>Out of scope here</strong> — this system targets <em>third-party</em> (account takeover) fraud.</td>
+</tr>
+<tr>
+<td><strong>Chargeback</strong></td>
+<td>A cardholder reversing a transaction through their bank. The mechanism by which fraud costs merchants money.</td>
+</tr>
+<tr>
+<td><strong>CNA / CNP</strong></td>
+<td><em>Card-Not-Authenticated</em> / <em>Card-Not-Present</em>. The electronic equivalent of a CNP transaction.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-data-science-and-machine-learning">4.2 Data Science and Machine Learning</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Machine Learning (ML)</strong></td>
+<td>Software that learns patterns from data instead of being given explicit rules. Here, it learns what a fraudulent transaction looks like from labelled examples.</td>
+</tr>
+<tr>
+<td><strong>Supervised learning</strong></td>
+<td>Learning from data where the answer is already known ("this one <em>is</em> fraud"). The model learns input → correct output.</td>
+</tr>
+<tr>
+<td><strong>Unsupervised learning</strong></td>
+<td>Learning structure in data <em>without</em> answers. Useful for finding "odd" transactions nobody has yet labelled as fraud.</td>
+</tr>
+<tr>
+<td><strong>Model</strong></td>
+<td>The learned function that maps inputs to a fraud probability. Once trained, it is a fixed set of parameters.</td>
+</tr>
+<tr>
+<td><strong>Training</strong></td>
+<td>The process of fitting model parameters to data. The model "studies" the training set.</td>
+</tr>
+<tr>
+<td><strong>Feature</strong></td>
+<td>An individual input column the model uses — e.g. <code>amount</code>, <code>txn_count_5m</code>, <code>new_device</code>. Also called an <em>attribute</em> or <em>predictor</em>.</td>
+</tr>
+<tr>
+<td><strong>Feature engineering</strong></td>
+<td>The craft of choosing and constructing the most informative features. Usually where most of a real project's predictive power comes from.</td>
+</tr>
+<tr>
+<td><strong>Label / Target</strong></td>
+<td>The correct answer for a training example (<code>1</code> = fraud, <code>0</code> = legitimate).</td>
+</tr>
+<tr>
+<td><strong>Ground truth</strong></td>
+<td>The verified real answer, independent of what a model predicts. Used to measure the model.</td>
+</tr>
+<tr>
+<td><strong>Inference / Prediction</strong></td>
+<td>Applying a trained model to new data to produce a prediction.</td>
+</tr>
+<tr>
+<td><strong>XGBoost</strong></td>
+<td><em>Extreme Gradient Boosting.</em> A gradient-boosted decision-tree method — the model used for the primary fraud classifier here. Fast, accurate, handles imbalanced tabular data well.</td>
+</tr>
+<tr>
+<td><strong>Gradient boosting</strong></td>
+<td>Builds an ensemble of decision trees one at a time, each new tree correcting the errors of the previous ones.</td>
+</tr>
+<tr>
+<td><strong>Decision tree</strong></td>
+<td>A model that predicts by asking a chain of yes/no questions (<code>amount &gt; 50000? → is device new? → …</code>).</td>
+</tr>
+<tr>
+<td><strong>Ensemble</strong></td>
+<td>A combination of several models whose combined prediction is better than any single one.</td>
+</tr>
+<tr>
+<td><strong>Isolation Forest</strong></td>
+<td>An <strong>unsupervised</strong> anomaly detector. It randomly partitions the feature space; points that end up isolated in few splits are treated as unusual. Needs no fraud labels.</td>
+</tr>
+<tr>
+<td><strong>Anomaly</strong></td>
+<td>A transaction unlike the norm. Not necessarily fraud — it is a <em>candidate</em> signal, not a verdict.</td>
+</tr>
+<tr>
+<td><strong>Supervised vs unsupervised in this system</strong></td>
+<td>XGBoost is supervised (needs fraud labels). Isolation Forest is unsupervised (finds oddity without labels). Both contribute to the final score.</td>
+</tr>
+<tr>
+<td><strong>Logistic regression</strong></td>
+<td>A simple linear model that outputs a probability. Interpretable but limited — it learns a straight-line boundary.</td>
+</tr>
+<tr>
+<td><strong>Random Forest</strong></td>
+<td>An ensemble of many decision trees, each voting. Robust, but slow at inference and large on disk.</td>
+</tr>
+<tr>
+<td><strong>SMOTE</strong></td>
+<td><em>Synthetic Minority Over-sampling Technique.</em> Creates synthetic minority examples to balance the training set. Used here as one experimental strategy.</td>
+</tr>
+<tr>
+<td><strong>Class weight</strong></td>
+<td>The alternative to SMOTE for imbalance: instead of adding data, tell the model "mistakes on fraud cost 100× more than mistakes on legitimate."</td>
+</tr>
+<tr>
+<td><strong>Imbalance strategy</strong></td>
+<td>The specific method used to handle class imbalance. This project compared: none, class weighting, and SMOTE.</td>
+</tr>
+<tr>
+<td><strong>Feature importance</strong></td>
+<td>How much each feature influenced the model's predictions. Interpretable, but coarser than SHAP.</td>
+</tr>
+<tr>
+<td><strong>SHAP</strong></td>
+<td><em>SHapley Additive exPlanations.</em> A method from game theory that attributes a prediction to individual features — "this score is 0.82, of which 0.31 came from the new device."</td>
+</tr>
+<tr>
+<td><strong>Explainability / Interpretability</strong></td>
+<td>The ability to justify a specific prediction in human terms. Essential in fraud: an analyst must be able to say <em>why</em>.</td>
+</tr>
+<tr>
+<td><strong>Probability</strong></td>
+<td>The model's confidence, 0 to 1, that a transaction is fraudulent. <em>Not</em> the same as the final risk score.</td>
+</tr>
+<tr>
+<td><strong>Cold start</strong></td>
+<td>When a new user or account has no history, so behavioural features have nothing to compare against. Handled here with documented safe defaults rather than crashes or <code>NaN</code>.</td>
+</tr>
+<tr>
+<td><strong>Baseline</strong></td>
+<td>A user's normal behaviour, established from their own history. Every behavioural feature is a <em>deviation from this baseline</em>.</td>
+</tr>
+<tr>
+<td><strong>Point-in-time correctness</strong></td>
+<td>Computing features using only data that existed <strong>before</strong> the transaction being scored. Violating this is data leakage (see §8).</td>
+</tr>
+<tr>
+<td><strong>Hyperparameter</strong></td>
+<td>A setting chosen <em>before</em> training (e.g. tree depth, learning rate, number of trees), as distinct from a learned parameter.</td>
+</tr>
+<tr>
+<td><strong>Model artefact</strong></td>
+<td>The saved file containing a trained model, e.g. <code>supervised.joblib</code>. Loading it is how the model is used in production.</td>
+</tr>
+<tr>
+<td><strong>Feature schema</strong></td>
+<td>The ordered, frozen list of feature names the model was trained on. The live path must produce features in exactly this order.</td>
+</tr>
+<tr>
+<td><strong>Median imputation</strong></td>
+<td>Replacing a missing feature value with the training-set median rather than a zero, so a missing value is not silently treated as "nothing unusual."</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-model-evaluation-metrics">4.3 Model Evaluation Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ROC curve</strong></td>
+<td>A graph of true-positive rate against false-positive rate across all possible thresholds.</td>
+</tr>
+<tr>
+<td><strong>ROC-AUC</strong></td>
+<td><em>Area Under the ROC Curve.</em> <strong>1.0 = perfect, 0.5 = random guessing.</strong> Measures ranking quality across all thresholds. Less informative than PR-AUC for heavily imbalanced data.</td>
+</tr>
+<tr>
+<td><strong>Precision-Recall curve (PR curve)</strong></td>
+<td>Precision against recall across thresholds.</td>
+</tr>
+<tr>
+<td><strong>PR-AUC</strong></td>
+<td>Area under the PR curve. <strong>The primary metric for this project</strong>, because it stays honest under extreme imbalance where ROC-AUC flatters a model. Best here: 0.5203.</td>
+</tr>
+<tr>
+<td><strong>Base rate</strong></td>
+<td>The natural fraction of positives in the data (0.329% in the test split). A PR-AUC must be compared against this — 0.0033 would be worthless.</td>
+</tr>
+<tr>
+<td><strong>Brier score</strong></td>
+<td>Mean squared error between predicted probability and actual outcome. Lower is better; measures whether probabilities are <em>calibrated</em>, not just correctly ordered.</td>
+</tr>
+<tr>
+<td><strong>Confusion matrix</strong></td>
+<td>A 2×2 table of TP / FP / FN / TN summarising all predictions at one threshold.</td>
+</tr>
+<tr>
+<td><strong>FPR / FNR</strong></td>
+<td><em>False Positive Rate</em> and <em>False Negative Rate</em> — the proportion of legitimate or fraudulent transactions respectively that were misclassified.</td>
+</tr>
+<tr>
+<td><strong>Cost matrix</strong></td>
+<td>Assigning money to each error type. This project used <strong>₹-equivalent cost 5 per false positive, 500 per false negative</strong> — a 100:1 ratio reflecting that missing real fraud is far more damaging.</td>
+</tr>
+<tr>
+<td><strong>Minimum-cost operating point</strong></td>
+<td>The threshold that minimises total expected cost under the cost matrix — the economically correct operating point, even if it has a lower F1.</td>
+</tr>
+<tr>
+<td><strong>Operating mode</strong></td>
+<td>A named (threshold, objective) pair. This project defines four: <code>high_recall</code>, <code>high_precision</code>, <code>balanced</code>, <code>min_cost</code>.</td>
+</tr>
+<tr>
+<td><strong>Overfitting</strong></td>
+<td>A model that memorised the training data, so it performs well in training and poorly on new data. Detected by comparing train and test metrics.</td>
+</tr>
+<tr>
+<td><strong>Underfitting</strong></td>
+<td>A model too simple to capture the pattern, performing poorly everywhere.</td>
+</tr>
+<tr>
+<td><strong>Data leakage</strong></td>
+<td>Information that should not be available at prediction time leaking into training, producing misleadingly perfect scores. See §8.</td>
+</tr>
+<tr>
+<td><strong>Validation set</strong></td>
+<td>Data held out from training, used to <em>choose</em> hyperparameters and thresholds.</td>
+</tr>
+<tr>
+<td><strong>Test set</strong></td>
+<td>Data touched exactly once, at the very end, to report final numbers. Choosing anything using it invalidates it.</td>
+</tr>
+<tr>
+<td><strong>Cross-validation</strong></td>
+<td>Rotating train/validation splits to reduce dependence on one particular split. This project instead used a time-aware split, which is more appropriate.</td>
+</tr>
+<tr>
+<td><strong>Chronological split</strong></td>
+<td>Splitting by <em>time</em> (earlier rows train, later rows test) rather than randomly. Essential for time-series data: a random split lets a model "see the future" while predicting the past.</td>
+</tr>
+<tr>
+<td><strong>Baseline model</strong></td>
+<td>A deliberately simple reference model a better model must beat. Here, logistic regression.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-software-engineering-and-web-technology">4.4 Software Engineering and Web Technology</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Front end / Back end</strong></td>
+<td><strong>Front end</strong> = what the user sees and clicks (the dashboard). <strong>Back end</strong> = the server logic and database behind it.</td>
+</tr>
+<tr>
+<td><strong>REST API</strong></td>
+<td>A set of rules for a server to expose functionality over HTTP using standard verbs (<code>GET</code> read, <code>POST</code> create, <code>PATCH</code> update, <code>DELETE</code> remove).</td>
+</tr>
+<tr>
+<td><strong>Endpoint</strong></td>
+<td>One specific URL + method combination that performs one function, e.g. <code>POST /api/v1/auth/login</code>.</td>
+</tr>
+<tr>
+<td><strong>HTTP status code</strong></td>
+<td>A 3-digit result code. <code>200</code> OK, <code>201</code> Created, <code>401</code> not authenticated, <code>403</code> authenticated but not allowed, <code>404</code> not found, <code>422</code> validation failed, <code>429</code> rate limited.</td>
+</tr>
+<tr>
+<td><strong>JSON</strong></td>
+<td>A lightweight text format for structured data exchange. The format of every API response here.</td>
+</tr>
+<tr>
+<td><strong>Request / Response</strong></td>
+<td>A client asking for something; the server's answer.</td>
+</tr>
+<tr>
+<td><strong>Payload</strong></td>
+<td>The data carried inside a request or response.</td>
+</tr>
+<tr>
+<td><strong>Serialisation</strong></td>
+<td>Converting an object into bytes (to save or send) and back.</td>
+</tr>
+<tr>
+<td><strong>ORM</strong></td>
+<td><em>Object-Relational Mapping.</em> Lets code use Python classes instead of hand-writing SQL. SQLAlchemy is the ORM used here.</td>
+</tr>
+<tr>
+<td><strong>SQL</strong></td>
+<td><em>Structured Query Language</em> — the language databases are queried in.</td>
+</tr>
+<tr>
+<td><strong>SQL injection</strong></td>
+<td>An attack where user input is pasted into a SQL query to hijack the database. Prevented here by parameterised queries via the ORM.</td>
+</tr>
+<tr>
+<td><strong>Table / Row / Column</strong></td>
+<td>A table is a data grid; a row is one record; a column is one attribute.</td>
+</tr>
+<tr>
+<td><strong>Primary key / Foreign key</strong></td>
+<td>A <strong>primary key</strong> uniquely identifies a row. A <strong>foreign key</strong> links one table's row to another table's row.</td>
+</tr>
+<tr>
+<td><strong>Index</strong></td>
+<td>A data structure that makes lookups fast at the cost of slower writes.</td>
+</tr>
+<tr>
+<td><strong>Migration</strong></td>
+<td>A versioned, scripted change to the database <em>schema</em> (structure), recorded in order so the database can be rebuilt to any point. Alembic manages these here.</td>
+</tr>
+<tr>
+<td><strong>Schema</strong></td>
+<td>The structure of the database — which tables and columns exist. Distinct from a Pydantic "schema" (a data-shape definition), which is a different meaning of the same word.</td>
+</tr>
+<tr>
+<td><strong>Dependency injection / override</strong></td>
+<td>Supplying a test double in place of the real database, so tests are isolated and fast.</td>
+</tr>
+<tr>
+<td><strong>FastAPI</strong></td>
+<td>A modern Python web framework that builds an API and auto-generates interactive documentation from type hints.</td>
+</tr>
+<tr>
+<td><strong>Uvicorn</strong></td>
+<td>The ASGI server that actually runs a FastAPI application.</td>
+</tr>
+<tr>
+<td><strong>ASGI</strong></td>
+<td><em>Asynchronous Server Gateway Interface</em> — the standard Python web servers use to run async applications.</td>
+</tr>
+<tr>
+<td><strong>React</strong></td>
+<td>A JavaScript library for building user interfaces from reusable components.</td>
+</tr>
+<tr>
+<td><strong>Vite</strong></td>
+<td>The modern build tool and dev server for the frontend. Compiles JSX into browser-ready JavaScript.</td>
+</tr>
+<tr>
+<td><strong>JSX</strong></td>
+<td>JavaScript extended with HTML-like tags, so UI structure can be written inline with component logic.</td>
+</tr>
+<tr>
+<td><strong>Component</strong></td>
+<td>A reusable, self-contained piece of a user interface.</td>
+</tr>
+<tr>
+<td><strong>Hooks</strong></td>
+<td>React functions that let a component use state and lifecycle, e.g. <code>useState</code>, <code>useEffect</code>.</td>
+</tr>
+<tr>
+<td><strong>SPA</strong></td>
+<td><em>Single-Page Application</em> — a web app that updates one page without reloading the browser.</td>
+</tr>
+<tr>
+<td><strong>Axios</strong></td>
+<td>An HTTP client for JavaScript — the frontend's way of calling the API.</td>
+</tr>
+<tr>
+<td><strong>Tailwind CSS</strong></td>
+<td>A utility-first styling framework: styling is applied with small predefined classes rather than a separate stylesheet.</td>
+</tr>
+<tr>
+<td><strong>Recharts</strong></td>
+<td>A charting library for React, used for the dashboard graphs.</td>
+</tr>
+<tr>
+<td><strong>Responsive container</strong></td>
+<td>A chart that resizes itself to fit its parent element.</td>
+</tr>
+<tr>
+<td><strong>WebSocket</strong></td>
+<td>A persistent two-way connection that stays open, so the server can push updates instantly without the browser polling.</td>
+</tr>
+<tr>
+<td><strong>Socket.IO</strong></td>
+<td>A library that manages WebSocket connections with automatic reconnection.</td>
+</tr>
+<tr>
+<td><strong>ASGI mount</strong></td>
+<td>Attaching a real-time server to the same HTTP server and port as the API, so one process serves both.</td>
+</tr>
+<tr>
+<td><strong>Event / broadcast</strong></td>
+<td>A message pushed to connected clients, e.g. "transaction 501 scored CRITICAL".</td>
+</tr>
+<tr>
+<td><strong>Vite dev server / build</strong></td>
+<td><code>npm run dev</code> serves the app live with hot reload; <code>npm run build</code> compiles it for deployment.</td>
+</tr>
+<tr>
+<td><strong>npm</strong></td>
+<td>The package manager for JavaScript libraries.</td>
+</tr>
+<tr>
+<td><strong>Environment variable</strong></td>
+<td>A setting read from outside the code (e.g. <code>DATABASE_URL</code>), so secrets never sit in source.</td>
+</tr>
+<tr>
+<td><strong><code>.env</code> file</strong></td>
+<td>A local file holding environment variables, kept out of version control.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="45-security-and-access-control">4.5 Security and Access Control</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Authentication</strong></td>
+<td>Proving <em>who you are</em> — the login step.</td>
+</tr>
+<tr>
+<td><strong>Authorisation</strong></td>
+<td>Deciding <em>what you may do</em> once identity is known. Authentication without authorisation is an open door.</td>
+</tr>
+<tr>
+<td><strong>RBAC</strong></td>
+<td><em>Role-Based Access Control.</em> Permissions attach to roles (<code>admin</code>, <code>analyst</code>, <code>user</code>), not to individual people.</td>
+</tr>
+<tr>
+<td><strong>Role</strong></td>
+<td>A named permission bundle: <code>admin</code> (full access), <code>analyst</code> (read data, work cases), <code>user</code> (minimal).</td>
+</tr>
+<tr>
+<td><strong>Privilege escalation</strong></td>
+<td>Gaining permissions you were not granted. A classic vulnerability, tested against in this project.</td>
+</tr>
+<tr>
+<td><strong>JWT</strong></td>
+<td><em>JSON Web Token.</em> A signed, self-contained token that carries identity and role, so the server need not store sessions.</td>
+</tr>
+<tr>
+<td><strong>Token expiry</strong></td>
+<td>A JWT has a limited validity (60 minutes here). After that it must be re-issued. Limits the damage if a token is stolen.</td>
+</tr>
+<tr>
+<td><strong>HS256</strong></td>
+<td>The signing algorithm used for these JWTs. "Signed" means the server can detect tampering.</td>
+</tr>
+<tr>
+<td><strong>bcrypt</strong></td>
+<td>A deliberately slow, salted password-hashing function. Slow on purpose, so brute-forcing a stolen hash is expensive.</td>
+</tr>
+<tr>
+<td><strong>Hashing</strong></td>
+<td>One-way conversion of a password to a fixed-length fingerprint. Cannot be reversed.</td>
+</tr>
+<tr>
+<td><strong>Salt</strong></td>
+<td>A unique random value mixed into each password before hashing, so identical passwords produce different hashes and precomputed "rainbow tables" are useless.</td>
+</tr>
+<tr>
+<td><strong>Plaintext</strong></td>
+<td>Text stored without protection. This project never stores a password in plaintext, anywhere.</td>
+</tr>
+<tr>
+<td><strong>Brute force</strong></td>
+<td>Trying every possible password until one works. Defended here by rate limiting.</td>
+</tr>
+<tr>
+<td><strong>Rate limiting</strong></td>
+<td>Capping how many requests one client may make per minute. Login: 10/min. Prediction: 60/min.</td>
+</tr>
+<tr>
+<td><strong>CORS</strong></td>
+<td><em>Cross-Origin Resource Sharing.</em> The browser rule that decides which other domains may call this API. A wildcard <code>*</code> is unsafe; this project uses an explicit allow-list.</td>
+</tr>
+<tr>
+<td><strong>HTTPS / TLS</strong></td>
+<td>Encrypted transport. Required in any real deployment so tokens cannot be intercepted.</td>
+</tr>
+<tr>
+<td><strong>Audit log</strong></td>
+<td>An append-only record of who did what, when, from where. Evidence after the fact.</td>
+</tr>
+<tr>
+<td><strong>Audit trail integrity</strong></td>
+<td>Audit entries are never edited or deleted, so they remain trustworthy.</td>
+</tr>
+<tr>
+<td><strong>PII</strong></td>
+<td><em>Personally Identifiable Information</em> — data that identifies a person. Minimising it is a legal and ethical duty.</td>
+</tr>
+<tr>
+<td><strong>Least privilege</strong></td>
+<td>Giving each account only the permissions it needs, no more.</td>
+</tr>
+<tr>
+<td><strong>Injection attack</strong></td>
+<td>Malicious input that changes a command's meaning. Includes SQL injection and XSS.</td>
+</tr>
+<tr>
+<td><strong>XSS</strong></td>
+<td><em>Cross-Site Scripting</em> — injecting malicious JavaScript into a page.</td>
+</tr>
+<tr>
+<td><strong>Threat model</strong></td>
+<td>A structured statement of what could go wrong, who the attacker is, and which controls address each risk.</td>
+</tr>
+<tr>
+<td><strong>Security event</strong></td>
+<td>A recorded observation from a security check, e.g. "SQL-injection payload correctly rejected with 422".</td>
+</tr>
+</tbody>
+</table>
+<h3 id="46-database-and-operations">4.6 Database and Operations</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PostgreSQL</strong></td>
+<td>A production-grade open-source relational database.</td>
+</tr>
+<tr>
+<td><strong>SQLite</strong></td>
+<td>A single-file relational database. No server needed — used for local runs and automated tests.</td>
+</tr>
+<tr>
+<td><strong>ACID</strong></td>
+<td>The four guarantees a relational database provides: <strong>A</strong>tomicity, <strong>C</strong>onsistency, <strong>I</strong>solation, <strong>D</strong>urability.</td>
+</tr>
+<tr>
+<td><strong>Transaction (DB sense)</strong></td>
+<td>A unit of work that either fully succeeds or fully fails. Distinct from a <em>payment</em> transaction, which is what this project mainly stores.</td>
+</tr>
+<tr>
+<td><strong>Commit</strong></td>
+<td>Making a change permanent.</td>
+</tr>
+<tr>
+<td><strong>Session</strong></td>
+<td>A temporary connection context holding state for a block of work.</td>
+</tr>
+<tr>
+<td><strong>Pool</strong></td>
+<td>A cache of reusable database connections, so connecting is not repeated per request.</td>
+</tr>
+<tr>
+<td><strong>Rollup</strong></td>
+<td>A pre-aggregated summary table, so a 6.36-million-row question is answered from a few hundred rows. A standard performance technique.</td>
+</tr>
+<tr>
+<td><strong>Ingestion</strong></td>
+<td>Loading raw data into the system.</td>
+</tr>
+<tr>
+<td><strong>ETL</strong></td>
+<td><em>Extract, Transform, Load</em> — the general shape of every data pipeline.</td>
+</tr>
+<tr>
+<td><strong>Counting rows</strong></td>
+<td>A full scan, slow on millions of rows. Typically avoided by filtering on an indexed, narrow range.</td>
+</tr>
+<tr>
+<td><strong>Index range</strong></td>
+<td>Restricting a query to a slice of ids, e.g. <code>id &gt;= 0</code>, so it touches far fewer rows.</td>
+</tr>
+<tr>
+<td><strong>Process-wide singleton</strong></td>
+<td>One shared instance for the whole application, so there is only ever one live feed.</td>
+</tr>
+<tr>
+<td><strong>Background task</strong></td>
+<td>Work that runs concurrently without blocking the response to a request.</td>
+</tr>
+<tr>
+<td><strong>Lifespan</strong></td>
+<td>The application's start-up and shutdown sequence, where long-running background work is started and stopped.</td>
+</tr>
+<tr>
+<td><strong>UUID / Primary key sequence</strong></td>
+<td>How unique identifiers are generated. This project uses an explicit allocator so live ids start at 0.</td>
+</tr>
+<tr>
+<td><strong>Negative identifier space</strong></td>
+<td>Reserving negative ids so training-corpus rows and live rows can live in one table without ever colliding.</td>
+</tr>
+<tr>
+<td><strong>Health endpoint</strong></td>
+<td>A trivial endpoint answering "is this process alive?" — used for monitoring.</td>
+</tr>
+<tr>
+<td><strong>OpenAPI / Swagger</strong></td>
+<td>A machine-readable description of an API, rendered as interactive documentation.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="47-mlops-and-monitoring">4.7 MLOps and Monitoring</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MLOps</strong></td>
+<td>The practice of operating ML systems in production — deployment, monitoring, retraining.</td>
+</tr>
+<tr>
+<td><strong>Model registry</strong></td>
+<td>A catalogue of trained model versions with their metrics, so a model can be traced, compared and rolled back.</td>
+</tr>
+<tr>
+<td><strong>Model versioning</strong></td>
+<td>Keeping every trained model with an identifier, so results are reproducible.</td>
+</tr>
+<tr>
+<td><strong>Activation</strong></td>
+<td>Choosing which registered model version is currently serving traffic.</td>
+</tr>
+<tr>
+<td><strong>Drift</strong></td>
+<td>When live data stops resembling the training data, so the model's predictions degrade.</td>
+</tr>
+<tr>
+<td><strong>Concept drift</strong></td>
+<td>The relationship between inputs and the true outcome changes over time (fraud tactics evolve).</td>
+</tr>
+<tr>
+<td><strong>Data drift</strong></td>
+<td>The distribution of input features changes over time.</td>
+</tr>
+<tr>
+<td><strong>PSI</strong></td>
+<td><em>Population Stability Index.</em> Measures how far a distribution has shifted from a baseline. Conventionally: &lt; 0.10 stable, 0.10–0.25 moderate shift, &gt; 0.25 significant.</td>
+</tr>
+<tr>
+<td><strong>Monitoring</strong></td>
+<td>Continuously checking the live system for degradation, as opposed to testing it once.</td>
+</tr>
+<tr>
+<td><strong>Retraining manifest</strong></td>
+<td>A record describing what to retrain on, from analyst feedback, without retraining automatically.</td>
+</tr>
+<tr>
+<td><strong>Feedback loop</strong></td>
+<td>Analyst judgement → feedback record → retraining candidate → new model version. Closes the loop between human expertise and model.</td>
+</tr>
+<tr>
+<td><strong>Ground-truth lag</strong></td>
+<td>Real fraud labels arrive long after the transaction (here, 24 hours). A model must be trained without labels that do not exist yet.</td>
+</tr>
+<tr>
+<td><strong>Champion/challenger</strong></td>
+<td>Comparing a candidate model against the incumbent before promoting it.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-system-architecture" class="page-break-before">5. System Architecture</h2>
+<h3 id="51-overview-diagram">5.1 Overview diagram</h3>
+<pre><code class="language-text">                          ┌──────────────────────────┐
+                          │   React / Vite Dashboard │
+                          │  Dashboard · Alerts ·    │
+                          │  Cases · Audit · Users   │
+                          └────────────┬─────────────┘
+                                       │  REST (HTTP) + WebSocket
+                          ┌────────────┴─────────────┐
+                          │      FastAPI Backend     │
+                          │  routes · schemas · auth │
+                          └────┬──────────┬──────┬───┘
+                               │          │      │
+              ┌────────────────┘          │      └───────────────┐
+              ▼                           ▼                      ▼
+   ┌────────────────────┐   ┌──────────────────────┐   ┌──────────────────┐
+   │  FeatureEngine     │   │  Hybrid Risk Engine  │   │  Audit Service   │
+   │  26 point-in-time  │   │  ML + anomaly +       │   │  every admin     │
+   │  behavioural feats  │   │  behaviour + rules   │   │  action logged   │
+   └─────────┬──────────┘   └──────────┬───────────┘   └──────────────────┘
+             │                         │
+             │            ┌────────────┼────────────┐
+             │            ▼            ▼            ▼
+             │      ┌──────────┐ ┌────────────┐ ┌──────────┐
+             │      │ XGBoost  │ │Isolation   │ │ 7 fraud  │
+             │      │(supervised)│ │  Forest    │ │  rules   │
+             │      └──────────┘ │(unsupervised)│ └──────────┘
+             │                  └────────────┘
+             │                         │
+             │                    0–100 score
+             │                         ▼
+             │                   ALLOW / REVIEW / BLOCK
+             │                         │
+   ┌─────────┴─────────────────────────┴──────┐
+   ▼                   Database                 │
+┌─────────────────┐  ┌──────────┐  ┌────────────┴────┐
+│  Transaction    │  │ Fraud    │  │  Alert → Case   │
+│  + Prediction   │  │ Alert    │──▶  → Note →       │
+└─────────────────┘  └──────────┘   │  Feedback       │
+                                     └─────────────────┘
+</code></pre>
+<h3 id="52-the-single-transaction-path">5.2 The single-transaction path</h3>
+<p>Every transaction — whether it arrives from an HTTP client or from the built-in live feed — takes <strong>exactly one
+path</strong>. This is enforced in code: both callers invoke the same function,
+<code>services/prediction_pipeline.ingest_transaction()</code>.</p>
+<p>The order of operations matters, and the order is deliberate:</p>
+<ol>
+<li><strong>Build features <em>before</em> persisting anything.</strong> If the transaction were stored first, "is this a new
+   device?" would compare the device against itself and always answer <em>no</em>. Computing features first is what
+   makes the new-device signal correct, and it is the single most important ordering constraint in the pipeline.</li>
+<li><strong>Score</strong> — XGBoost probability, Isolation Forest anomaly, behavioural score, and deterministic rules
+   combined into one 0–100 score.</li>
+<li><strong>Register the device</strong>, only now, so a genuinely new device is detectable next time.</li>
+<li><strong>Persist the transaction</strong>, then the prediction with its full explanation.</li>
+<li><strong>Create an alert and a case</strong> if the decision is REVIEW or BLOCK.</li>
+<li><strong>Emit WebSocket events</strong> so every connected dashboard updates instantly.</li>
+</ol>
+<h3 id="53-live-data-vs-training-corpus">5.3 Live data vs training corpus</h3>
+<p>The system holds two logically distinct populations in one database:</p>
+<table>
+<thead>
+<tr>
+<th>Population</th>
+<th>Identifier range</th>
+<th>Purpose</th>
+<th>Counted in dashboard KPIs?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PaySim training corpus</strong></td>
+<td>Negative ids, <code>-10,000,000 … -3,637,381</code></td>
+<td>Offline training and benchmark reporting</td>
+<td><strong>No</strong></td>
+</tr>
+<tr>
+<td><strong>Live traffic</strong></td>
+<td>Non-negative ids, starting at <code>0</code></td>
+<td>Real-time scoring and operations</td>
+<td><strong>Yes</strong></td>
+</tr>
+</tbody>
+</table>
+<p>This separation exists because mixing them produces a dishonest dashboard. If the 6.36-million-row corpus were
+counted as "transactions processed today", the headline number would be meaningless — it would describe training
+data, not activity. Corpus figures are reported separately and explicitly labelled as training data.</p>
+<p>The allocator is explicit rather than relying on a database auto-increment sequence, precisely so that
+continuing the live counter can never collide with the corpus range.</p>
+<h3 id="54-real-time-flow">5.4 Real-time flow</h3>
+<pre><code class="language-text">  Browser                    Backend                      Model
+    │                            │                           │
+    │  WS connect                │                           │
+    │───────────────────────────▶│                           │
+    │                            │                           │
+    │                            │  transaction arrives     │
+    │                            │──────────────────────────▶│
+    │                            │      score 0–100          │
+    │                            │◀──────────────────────────│
+    │  ◀── &quot;txn 501 CRITICAL&quot; ───│  (pushed, not polled)    │
+    │                            │                           │
+</code></pre>
+<p>The dashboard never polls. When a transaction is scored, the backend pushes an event to every connected client.</p>
+<h3 id="55-architectural-decision-modular-monolith">5.5 Architectural decision: modular monolith</h3>
+<p>The ML model is integrated <strong>into</strong> the FastAPI application rather than split into microservices.</p>
+<p><em>Why:</em> a microservices split would add service discovery, network failure modes, distributed tracing and
+container orchestration — substantial machinery that adds risk without adding research value. For a final-year
+project that must be understandable, reproducible and locally deployable, a <strong>modular monolith</strong> is the correct
+choice: clear internal module boundaries, one deployable unit, one database transaction spanning the whole
+scoring flow.</p>
+<p>This is a deliberate, defensible engineering decision rather than an omission.</p>
+<hr />
+<h2 id="6-technology-stack-and-why" class="page-break-before">6. Technology Stack and Why</h2>
+<h3 id="61-frontend">6.1 Frontend</h3>
+<table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Version</th>
+<th>Why it was chosen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>React</td>
+<td>19.x</td>
+<td>Component model maps cleanly onto dashboard widgets; largest ecosystem</td>
+</tr>
+<tr>
+<td>Vite</td>
+<td>8.x</td>
+<td>Fast dev server with hot reload; modern build tooling</td>
+</tr>
+<tr>
+<td>Tailwind CSS</td>
+<td>4.x</td>
+<td>Utility classes keep styling consistent without a large stylesheet</td>
+</tr>
+<tr>
+<td>Recharts</td>
+<td>3.x</td>
+<td>Composable React charts for trends and distributions</td>
+</tr>
+<tr>
+<td>Axios</td>
+<td>1.x</td>
+<td>Promise-based HTTP client with interceptors</td>
+</tr>
+<tr>
+<td>socket.io-client</td>
+<td>4.x</td>
+<td>WebSocket with automatic reconnection — a dropped connection heals itself</td>
+</tr>
+<tr>
+<td>oxlint</td>
+<td>1.x</td>
+<td>Fast JavaScript linting</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62-backend">6.2 Backend</h3>
+<table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Version</th>
+<th>Why it was chosen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FastAPI</td>
+<td>0.141</td>
+<td>Async Python, automatic OpenAPI docs, Pydantic validation built in</td>
+</tr>
+<tr>
+<td>Uvicorn</td>
+<td>0.54</td>
+<td>ASGI server for FastAPI</td>
+</tr>
+<tr>
+<td>SQLAlchemy</td>
+<td>2.1</td>
+<td>ORM — parameterised queries, so SQL injection is structurally prevented</td>
+</tr>
+<tr>
+<td>Alembic</td>
+<td>1.20</td>
+<td>Versioned schema migrations</td>
+</tr>
+<tr>
+<td>Pydantic</td>
+<td>2.13</td>
+<td>Request/response validation; invalid input is rejected before reaching the database</td>
+</tr>
+<tr>
+<td>python-jose</td>
+<td>3.5</td>
+<td>JWT creation and verification</td>
+</tr>
+<tr>
+<td>passlib + bcrypt</td>
+<td>1.7 / 4.0</td>
+<td>Password hashing</td>
+</tr>
+<tr>
+<td>slowapi</td>
+<td>0.1</td>
+<td>Rate limiting for login and prediction endpoints</td>
+</tr>
+<tr>
+<td>python-socketio</td>
+<td>5.17</td>
+<td>Real-time events, mounted on the same server</td>
+</tr>
+<tr>
+<td>psycopg2-binary</td>
+<td>2.9</td>
+<td>PostgreSQL driver</td>
+</tr>
+<tr>
+<td>pytest</td>
+<td>9.1</td>
+<td>Automated testing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="63-machine-learning">6.3 Machine learning</h3>
+<table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Why it was chosen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>pandas / NumPy</td>
+<td>Data manipulation and vectorised numerics</td>
+</tr>
+<tr>
+<td>scikit-learn</td>
+<td>Preprocessing, metrics, model baselines</td>
+</tr>
+<tr>
+<td>XGBoost</td>
+<td>Primary classifier — best PR-AUC on the benchmark and fast enough for real time</td>
+</tr>
+<tr>
+<td>imbalanced-learn</td>
+<td>SMOTE oversampling, as one experimental imbalance strategy</td>
+</tr>
+<tr>
+<td>SHAP</td>
+<td>Per-prediction feature attribution for explainability</td>
+</tr>
+<tr>
+<td>joblib</td>
+<td>Model serialisation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="64-database">6.4 Database</h3>
+<p>PostgreSQL 16 for deployment; SQLite for local demonstration and automated tests. SQLAlchemy abstracts the
+difference, and the test suite deliberately uses in-memory SQLite so CI needs no external database service.</p>
+<hr />
+<h2 id="7-the-paysim-dataset" class="page-break-before">7. The PaySim Dataset</h2>
+<h3 id="71-provenance">7.1 Provenance</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Name</strong></td>
+<td>PaySim — <em>Synthetic financial transaction dataset for fraud detection</em></td>
+</tr>
+<tr>
+<td><strong>Publishers</strong></td>
+<td>Lopez-Rojas et al.</td>
+</tr>
+<tr>
+<td><strong>Availability</strong></td>
+<td>Public, via Kaggle (<code>ealaxi/paysim1</code>)</td>
+</tr>
+<tr>
+<td><strong>File</strong></td>
+<td><code>PS_20174392719_1491204439457_log.csv</code></td>
+</tr>
+<tr>
+<td><strong>SHA-256</strong></td>
+<td><code>16910f90577b0d981bf8ff289714510bb89bc71bff7d3f220f024e287e4eea6b</code></td>
+</tr>
+<tr>
+<td><strong>Nature</strong></td>
+<td><strong>Synthetic</strong> — generated for research, containing no real financial data</td>
+</tr>
+<tr>
+<td><strong>Time span</strong></td>
+<td>742 hours (~31 days)</td>
+</tr>
+<tr>
+<td><strong>Fraud rate</strong></td>
+<td>0.1291% — about 1 in 774 transactions</td>
+</tr>
+</tbody>
+</table>
+<p>The SHA-256 checksum is recorded in <code>dataset_meta.json</code> so anyone can verify they are using the identical file
+the results were produced from. This is basic research hygiene.</p>
+<h3 id="72-raw-columns">7.2 Raw columns</h3>
+<table>
+<thead>
+<tr>
+<th>Original column</th>
+<th>Kept?</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>step</code> (days since start)</td>
+<td>✅</td>
+<td>Time source for velocity and hour-of-day features</td>
+</tr>
+<tr>
+<td><code>type</code> (transaction type)</td>
+<td>✅</td>
+<td>Payment-type signal</td>
+</tr>
+<tr>
+<td><code>amount</code></td>
+<td>✅</td>
+<td>Primary monetary feature</td>
+</tr>
+<tr>
+<td><code>nameOrig</code> / <code>nameDest</code></td>
+<td>✅ (hashed)</td>
+<td>Counterparty identity</td>
+</tr>
+<tr>
+<td><code>oldbalanceOrig</code>, <code>newbalanceOrig</code>, <code>oldbalanceDest</code>, <code>newbalanceDest</code></td>
+<td>❌ <strong>Dropped</strong></td>
+<td><strong>Leakage risk</strong> — see §8.1</td>
+</tr>
+<tr>
+<td><code>isFlaggedFraud</code></td>
+<td>❌ <strong>Dropped</strong></td>
+<td><strong>Leakage</strong> — it is the source label, and PaySim's flag is itself a known-biased heuristic</td>
+</tr>
+<tr>
+<td><code>isFraud</code></td>
+<td>✅ as the label</td>
+<td>The target variable</td>
+</tr>
+</tbody>
+</table>
+<p>PaySim's own <code>isFlaggedFraud</code> is a <em>simulator artefact</em> derived from the generative process, not an independent
+verdict. Keeping it as a feature would let the model read the answer. It is dropped and the more reliable
+<code>isFraud</code> ground truth is used instead.</p>
+<h3 id="73-processed-dataset-profile">7.3 Processed dataset profile</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total rows</td>
+<td><strong>6,362,620</strong></td>
+</tr>
+<tr>
+<td>Fraud rows</td>
+<td><strong>8,213</strong></td>
+</tr>
+<tr>
+<td>Fraud rate</td>
+<td>0.1291%</td>
+</tr>
+<tr>
+<td>Missing values</td>
+<td><strong>0</strong> in every column</td>
+</tr>
+<tr>
+<td>Duplicate rows</td>
+<td><strong>0</strong></td>
+</tr>
+<tr>
+<td>Unique users</td>
+<td>6,353,307</td>
+</tr>
+<tr>
+<td>Unique counterparties</td>
+<td>2,722,362</td>
+</tr>
+<tr>
+<td>Users with &gt;1 transaction</td>
+<td>0.146%</td>
+</tr>
+<tr>
+<td>Maximum transactions per user</td>
+<td><strong>3</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="74-fraud-distribution-by-transaction-type">7.4 Fraud distribution by transaction type</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Rows</th>
+<th>Fraud</th>
+<th>Fraud rate within type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CASH_OUT</td>
+<td>2,237,500</td>
+<td>4,116</td>
+<td>0.184%</td>
+</tr>
+<tr>
+<td>TRANSFER</td>
+<td>532,909</td>
+<td>4,097</td>
+<td>0.769%</td>
+</tr>
+<tr>
+<td>CASH_IN</td>
+<td>1,399,284</td>
+<td>0</td>
+<td>0%</td>
+</tr>
+<tr>
+<td>PAYMENT</td>
+<td>2,151,495</td>
+<td>0</td>
+<td>0%</td>
+</tr>
+<tr>
+<td>DEBIT</td>
+<td>41,432</td>
+<td>0</td>
+<td>0%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Interpretation.</strong> All fraud in PaySim sits in CASH_OUT and TRANSFER — the two types that move money <em>out</em> of an
+account. This is a property of the synthetic generative process, not a finding about real banking. A real-world
+model must not assume fraud is impossible in other transaction types; this concentration is an <strong>artefact</strong> and
+is reported as a limitation in §21.</p>
+<h3 id="75-split">7.5 Split</h3>
+<p>A <strong>chronological</strong> split is used, not a random one, because randomly splitting time-series data lets a model
+train on data that is <em>later</em> than the data it is asked to predict.</p>
+<table>
+<thead>
+<tr>
+<th>Split</th>
+<th>Fraction</th>
+<th>Rows</th>
+<th>Fraud</th>
+<th>Fraud rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Train</td>
+<td>60%</td>
+<td>3,792,821</td>
+<td>3,175</td>
+<td>0.0837%</td>
+</tr>
+<tr>
+<td>Validation</td>
+<td>20%</td>
+<td>1,276,276</td>
+<td>780</td>
+<td>0.0611%</td>
+</tr>
+<tr>
+<td>Test</td>
+<td>20%</td>
+<td>1,293,523</td>
+<td>4,258</td>
+<td><strong>0.3292%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The test fraud rate (0.329%) is substantially higher than training (0.084%). This is <strong>temporal variation
+inherent to the data</strong>, not a bug — and it is a useful stress test, because a model tuned on the quiet training
+period must still work in the busy test period. It is also a genuine difficulty: the model is selected in a calm
+regime and must perform in a turbulent one.</p>
+<h3 id="76-label-availability-delay">7.6 Label availability delay</h3>
+<p>Fraud ground truth arrives <strong>24 hours (86,400 s) after</strong> the transaction. This <code>label_delay_s</code> is respected
+throughout feature construction: a feature computed at time <em>t</em> may only use transactions from before <em>t</em>,
+because a label from the future does not exist at decision time.</p>
+<hr />
+<h2 id="8-data-leakage-prevention" class="page-break-before">8. Data Leakage Prevention</h2>
+<p>Data leakage — letting information that would not exist at prediction time influence training — is the most
+common way fraud models appear to work brilliantly and then fail in production. Three specific leaks were
+identified and closed.</p>
+<h3 id="81-post-balance-columns-oldbalance-newbalance">8.1 Post-balance columns (<code>oldbalance*</code>, <code>newbalance*</code>)</h3>
+<p>PaySim provides the account balance before and after each transaction. These are computed <em>from the outcome</em>:
+a balance is only "new" after the money has moved. A fraudulent transaction typically empties an account, so
+post-transaction balances leak the answer almost directly.</p>
+<p><strong>Action:</strong> all four balance columns dropped at ingestion.</p>
+<h3 id="82-the-simulators-own-fraud-flag-isflaggedfraud">8.2 The simulator's own fraud flag (<code>isFlaggedFraud</code>)</h3>
+<p>This flag is generated by the same process that generated the transactions, encoding the generative rule rather
+than an independent judgement. It correlates with the label by construction.</p>
+<p><strong>Action:</strong> dropped. <code>isFraud</code> used as the label instead.</p>
+<h3 id="83-future-information-in-behavioural-features">8.3 Future information in behavioural features</h3>
+<p>A velocity feature ("transactions in the last 5 minutes") is legitimate — but only if "last 5 minutes" means
+<em>before</em> the current transaction. Computing it over the whole window including the current row would let a
+single burst transaction raise its own velocity score.</p>
+<p><strong>Action:</strong> every behavioural feature is computed <strong>point-in-time</strong>, using only strictly earlier transactions.
+This is enforced structurally: in the live pipeline, <code>build_features()</code> runs <em>before</em> the current transaction
+is persisted, so the current row cannot appear in its own history.</p>
+<p><strong>Verification:</strong> <code>docs/data_leakage_notes.md</code> records the analysis. The test suite asserts that corpus rows
+(negative ids) never influence live scoring — a corpus row is not a real transaction and must not be counted.</p>
+<h3 id="84-why-the-test-set-is-touched-once">8.4 Why the test set is touched once</h3>
+<p>Thresholds are selected on the <strong>validation</strong> set. The test set is evaluated exactly once, at the end, at those
+frozen thresholds. Choosing a threshold by looking at test performance would silently convert the test set into
+a second validation set and inflate every reported number.</p>
+<hr />
+<h2 id="9-feature-engineering-the-26-live-features" class="page-break-before">9. Feature Engineering — the 26 Live Features</h2>
+<p>Every feature is a <strong>deviation from a baseline built from that account's own history</strong>, computed strictly
+point-in-time. The live model uses 26 features, grouped below by the signal they capture.</p>
+<h3 id="91-amount-features">9.1 Amount features</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Definition</th>
+<th>Fraud signal it captures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>amount</code></td>
+<td>Raw transaction amount</td>
+<td>Baseline magnitude</td>
+</tr>
+<tr>
+<td><code>log_amount</code></td>
+<td><code>log1p(amount)</code></td>
+<td>Compresses extreme values so one huge transaction cannot dominate the tree splits</td>
+</tr>
+<tr>
+<td><code>amount_vs_user_avg</code></td>
+<td><code>amount / mean(prior amounts)</code></td>
+<td>An amount 20× the account's norm is suspicious</td>
+</tr>
+<tr>
+<td><code>amount_zscore</code></td>
+<td><code>(amount − μ) / σ</code> over the user's own history</td>
+<td>How many standard deviations from normal</td>
+</tr>
+</tbody>
+</table>
+<h3 id="92-velocity-features-how-fast-not-just-how-many">9.2 Velocity features — <em>how fast</em>, not just <em>how many</em></h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Definition</th>
+<th>Fraud signal it captures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>txn_count_1m</code></td>
+<td>Transactions in the last 1 minute</td>
+<td>Card testing, bursts</td>
+</tr>
+<tr>
+<td><code>txn_count_5m</code></td>
+<td>Transactions in the last 5 minutes</td>
+<td>Card testing, rapid repetition</td>
+</tr>
+<tr>
+<td><code>txn_count_1h</code></td>
+<td>Transactions in the last hour</td>
+<td>Sustained anomalous activity</td>
+</tr>
+<tr>
+<td><code>txn_count_24h</code></td>
+<td>Transactions in the last 24 hours</td>
+<td>Daily volume deviation</td>
+</tr>
+<tr>
+<td><code>amount_sum_1h</code></td>
+<td>Total amount in the last hour</td>
+<td>Sudden drain attempt</td>
+</tr>
+<tr>
+<td><code>amount_sum_24h</code></td>
+<td>Total amount in the last 24 hours</td>
+<td>Large outflow</td>
+</tr>
+<tr>
+<td><code>time_since_last_txn_s</code></td>
+<td>Seconds since this user's previous transaction</td>
+<td>Machine-like regularity indicates automation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="93-account-lifecycle-features">9.3 Account lifecycle features</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Definition</th>
+<th>Fraud signal it captures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user_txn_count_prior</code></td>
+<td>Number of prior transactions</td>
+<td>How much history exists</td>
+</tr>
+<tr>
+<td><code>is_first_txn</code></td>
+<td>1 if this is the account's first transaction</td>
+<td>Brand-new accounts are high-risk</td>
+</tr>
+<tr>
+<td><code>account_age_s</code></td>
+<td>Seconds since the account was first seen</td>
+<td>Very new accounts</td>
+</tr>
+</tbody>
+</table>
+<h3 id="94-time-of-day-features">9.4 Time-of-day features</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Definition</th>
+<th>Fraud signal it captures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hour_of_day</code></td>
+<td>Hour (UTC) of the transaction</td>
+<td>Context</td>
+</tr>
+<tr>
+<td><code>day_of_week</code></td>
+<td>Day of week</td>
+<td>Context — weekends differ</td>
+</tr>
+<tr>
+<td><code>is_weekend</code></td>
+<td>1 if Saturday or Sunday</td>
+<td>Context</td>
+</tr>
+<tr>
+<td><code>unusual_hour</code></td>
+<td>1 if the hour is rare for this user</td>
+<td>Activity at 03:00 for a 09:00–18:00 account</td>
+</tr>
+</tbody>
+</table>
+<h3 id="95-counterparty-features">9.5 Counterparty features</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Definition</th>
+<th>Fraud signal it captures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>counterparty_txn_count_prior</code></td>
+<td>Prior transactions with this counterparty</td>
+<td>New payee</td>
+</tr>
+<tr>
+<td><code>user_fraud_rate_prior</code></td>
+<td>User's historical share of HIGH/CRITICAL predictions</td>
+<td>Account already implicated</td>
+</tr>
+<tr>
+<td><code>counterparty_fraud_rate_prior</code></td>
+<td>Counterparty's confirmed-fraud rate</td>
+<td>Destination already implicated</td>
+</tr>
+</tbody>
+</table>
+<h3 id="96-device-and-geography-features">9.6 Device and geography features</h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Definition</th>
+<th>Fraud signal it captures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>new_device</code></td>
+<td>1 if this device has never been seen for this user</td>
+<td>Stolen card on unknown hardware</td>
+</tr>
+<tr>
+<td><code>known_device_count</code></td>
+<td>How many devices this user is associated with</td>
+<td>New device on a multi-device account is more suspicious</td>
+</tr>
+<tr>
+<td><code>location_change</code></td>
+<td>1 if the location differs from the previous transaction</td>
+<td>Travel</td>
+</tr>
+<tr>
+<td><code>distance_from_prev_km</code></td>
+<td>Great-circle distance from the previous location</td>
+<td>Geographic impossibility</td>
+</tr>
+<tr>
+<td><code>implied_speed_kmh</code></td>
+<td><code>distance / elapsed time</code></td>
+<td><strong>Impossible travel</strong> — above 900 km/h is physically impossible</td>
+</tr>
+</tbody>
+</table>
+<h3 id="97-the-impossible-travel-derivation">9.7 The "impossible travel" derivation</h3>
+<p>This is the most interpretable feature in the system, and it is pure geometry:</p>
+<pre><code class="language-text">implied_speed_kmh = distance_from_prev_km
+                   ─────────────────────────────
+                   (time_now − time_of_previous_txn) in hours
+</code></pre>
+<p>If a user's previous transaction was in Mumbai and the current one is in Chennai 1.2 hours later, the implied
+speed is roughly 1,000 km/h — faster than a commercial aircraft. No human made both transactions. This single
+feature catches account takeover without needing any fraud label, which is why it also operates as a standalone
+deterministic rule.</p>
+<h3 id="98-cold-start-handling">9.8 Cold-start handling</h3>
+<p>A user with no history would make <code>amount_vs_user_avg</code> a division by zero and <code>amount_zscore</code> undefined. Rather
+than crash or produce <code>NaN</code>:</p>
+<ul>
+<li><code>mean_amount = 0</code>, <code>std_amount = 1</code> for a brand-new account, so the z-score degenerates gracefully to the raw
+  amount.</li>
+<li>The <strong>behavioural score</strong> is scaled by a <em>history confidence</em> factor, <code>min(1, prior_txns / 5)</code>. An account with
+  no history is simply not judged against a meaningless baseline — it accumulates weight as real history arrives.</li>
+<li>A first transaction is still scored, but its <code>is_first_txn</code> flag contributes its own honest risk signal.</li>
+</ul>
+<hr />
+<h2 id="10-model-development-and-evaluation" class="page-break-before">10. Model Development and Evaluation</h2>
+<h3 id="101-protocol">10.1 Protocol</h3>
+<p>A strict, leak-free protocol was followed:</p>
+<ol>
+<li><strong>Fit</strong> on the training split only.</li>
+<li><strong>Select</strong> every threshold on the <strong>validation</strong> split, never on test.</li>
+<li><strong>Evaluate</strong> the test split exactly once, at those frozen thresholds.</li>
+</ol>
+<p>This discipline is what makes the numbers in §10.3 trustworthy.</p>
+<h3 id="102-the-eight-model-variants">10.2 The eight model variants</h3>
+<p>Three algorithm families × three imbalance strategies, plus one unsupervised model:</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Model</th>
+<th>Imbalance strategy</th>
+<th>Kind</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td>Logistic Regression</td>
+<td>none</td>
+<td>supervised</td>
+</tr>
+<tr>
+<td>A2</td>
+<td>Logistic Regression</td>
+<td><code>class_weight='balanced'</code></td>
+<td>supervised</td>
+</tr>
+<tr>
+<td>B</td>
+<td>Random Forest</td>
+<td>none</td>
+<td>supervised</td>
+</tr>
+<tr>
+<td>B2</td>
+<td>Random Forest</td>
+<td><code>class_weight='balanced'</code></td>
+<td>supervised</td>
+</tr>
+<tr>
+<td>C</td>
+<td>XGBoost</td>
+<td>none</td>
+<td>supervised</td>
+</tr>
+<tr>
+<td>D</td>
+<td>XGBoost</td>
+<td><code>class_weight='balanced'</code></td>
+<td>supervised</td>
+</tr>
+<tr>
+<td>E</td>
+<td>XGBoost</td>
+<td>SMOTE</td>
+<td>supervised</td>
+</tr>
+<tr>
+<td>F</td>
+<td>Isolation Forest</td>
+<td>n/a</td>
+<td><strong>unsupervised</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="103-test-set-results">10.3 Test-set results</h3>
+<p>All figures are on the <strong>test split</strong> (1,293,523 rows, 4,258 fraud) at each model's best-validation operating
+point. Base rate = 0.329%.</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>PR-AUC</th>
+<th>ROC-AUC</th>
+<th>Brier</th>
+<th>Median latency</th>
+<th>Fit time</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A — LogReg</td>
+<td>0.2320</td>
+<td>0.9024</td>
+<td>0.0029</td>
+<td>2.4 ms</td>
+<td>18 s</td>
+</tr>
+<tr>
+<td>A2 — LogReg (balanced)</td>
+<td>0.1292</td>
+<td>0.9381</td>
+<td>0.1146</td>
+<td>1.2 ms</td>
+<td>37 s</td>
+</tr>
+<tr>
+<td>B — Random Forest</td>
+<td>0.4375</td>
+<td>0.9609</td>
+<td>0.0034</td>
+<td>110 ms</td>
+<td>134 s</td>
+</tr>
+<tr>
+<td>B2 — Random Forest (balanced)</td>
+<td>0.4583</td>
+<td>0.9696</td>
+<td>0.0064</td>
+<td>76 ms</td>
+<td>136 s</td>
+</tr>
+<tr>
+<td>C — XGBoost</td>
+<td>0.3056</td>
+<td>0.9706</td>
+<td>0.0034</td>
+<td>7.3 ms</td>
+<td>315 s</td>
+</tr>
+<tr>
+<td><strong>D — XGBoost (balanced)</strong></td>
+<td><strong>0.5203</strong></td>
+<td>0.9665</td>
+<td>0.0358</td>
+<td><strong>7.2 ms</strong></td>
+<td>226 s</td>
+</tr>
+<tr>
+<td>E — XGBoost (SMOTE)</td>
+<td>0.4990</td>
+<td><strong>0.9710</strong></td>
+<td>0.0042</td>
+<td>7.0 ms</td>
+<td>34 s</td>
+</tr>
+<tr>
+<td>F — Isolation Forest</td>
+<td>0.0319</td>
+<td>0.8676</td>
+<td>0.0918</td>
+<td>28 ms</td>
+<td>2 s</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Bold = best in column.</strong></p>
+<h3 id="104-what-these-results-mean">10.4 What these results mean</h3>
+<p><strong>XGBoost with class weighting (D) is selected</strong>, on three independent grounds:</p>
+<ul>
+<li><strong>Best PR-AUC (0.5203).</strong> Under 1:774 imbalance, PR-AUC is the metric that does not flatter a model. ROC-AUC
+  rewards ranking quality; PR-AUC rewards actually finding the fraud. For a fraud system, only the second matters.</li>
+<li><strong>Real-time capable.</strong> 7.2 ms median latency. Random Forest at 110 ms is 15× slower for <em>worse</em> PR-AUC.</li>
+<li><strong>Well calibrated enough to be useful.</strong> A Brier score of 0.0358 is high relative to the others, which is
+  expected: class weighting deliberately trades probability calibration for recall. The scores remain useful for
+  <em>ranking</em>, and ranking is what a threshold needs.</li>
+</ul>
+<p><strong>The honest counter-argument</strong> is model E (SMOTE), which has the best ROC-AUC (0.9710) and a much better Brier
+score (0.0042). It was not selected because PR-AUC is the operationally decisive metric here, and because
+oversampling can teach the model about <em>synthetic</em> fraud patterns that do not generalise. Both facts are
+recorded rather than hidden.</p>
+<p><strong>Isolation Forest (F) scored poorly as a classifier (PR-AUC 0.0319) — and this is expected, not a failure.</strong> It
+is unsupervised: it was never told what fraud looks like, so it flags <em>unusual</em> transactions, of which fraud is
+only one cause. This is precisely why it is used in the hybrid engine as a <strong>supporting risk signal with a small
+weight</strong>, not as the primary detector. Its own result file states this explicitly: <em>"Anomaly score is an
+additional risk signal, not a fraud classifier."</em></p>
+<h3 id="105-operating-points">10.5 Operating points</h3>
+<p>Each model is reported at four operating modes, because "the best model" is incomplete without saying <em>where on
+the precision–recall curve you are running</em>:</p>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Objective</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>high_recall</code></td>
+<td>Catch as much fraud as possible; accept false alarms</td>
+</tr>
+<tr>
+<td><code>high_precision</code></td>
+<td>Almost every alert is real; accept missing fraud</td>
+</tr>
+<tr>
+<td><code>balanced</code></td>
+<td>Compromise</td>
+</tr>
+<tr>
+<td><code>min_cost</code></td>
+<td>Minimise expected cost under the cost matrix (5 per FP, 500 per FN)</td>
+</tr>
+</tbody>
+</table>
+<p>For model D (XGBoost balanced), at <code>min_cost</code> the validation threshold of 0.85 yields recall <strong>0.737</strong> — catching
+about three quarters of all fraud — at a threshold that the <em>validation</em> set, not the test set, selected.</p>
+<h3 id="106-a-note-on-deceptive-accuracy">10.6 A note on deceptive accuracy</h3>
+<p>A model that always answers "legitimate" scores <strong>99.87% accuracy</strong> on this dataset while detecting <strong>zero</strong> fraud.
+This single observation is why the project reports PR-AUC, recall and cost rather than accuracy, and why §11 uses a
+multi-signal score instead of a bare classifier output.</p>
+<hr />
+<h2 id="11-the-hybrid-risk-engine" class="page-break-before">11. The Hybrid Risk Engine</h2>
+<p>The deployed model is not one classifier. It is a <strong>weighted combination of four independent signals</strong>, because
+each signal catches fraud the others miss.</p>
+<h3 id="111-the-four-signals">11.1 The four signals</h3>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Range</th>
+<th>Source</th>
+<th>What it uniquely catches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>ML</strong></td>
+<td>0–1</td>
+<td>XGBoost probability</td>
+<td>Statistical patterns in combinations no human would enumerate</td>
+</tr>
+<tr>
+<td><strong>Anomaly</strong></td>
+<td>0–1</td>
+<td>Isolation Forest</td>
+<td>Transactions unlike <em>this user's</em> norm, even if common globally</td>
+</tr>
+<tr>
+<td><strong>Behaviour</strong></td>
+<td>0–1</td>
+<td>Deterministic formula</td>
+<td>Deviation from the account's own baseline</td>
+</tr>
+<tr>
+<td><strong>Rules</strong></td>
+<td>0–1</td>
+<td>7 deterministic rules</td>
+<td>Known attack patterns with unambiguous physics</td>
+</tr>
+</tbody>
+</table>
+<h3 id="112-the-aggregation-formula">11.2 The aggregation formula</h3>
+<pre><code class="language-text">FinalRisk = 100 × Σ(wᵢ × sᵢ) / Σ(wᵢ)      over the signals AVAILABLE for this transaction
+</code></pre>
+<p>where each <code>sᵢ ∈ [0,1]</code> is a signal value and each <code>wᵢ</code> is its weight.</p>
+<p><strong>Critical design detail — missing signals are excluded, not zeroed.</strong> If a signal is unavailable (no anomaly
+model loaded, or a feature is <code>NaN</code>), it is <em>left out</em> and the remaining weights are <strong>renormalised</strong>. Treating a
+missing signal as <code>0</code> would silently drag a score toward "safe" precisely when the system knows least — the most
+dangerous possible failure direction for a fraud system. This is a safety decision, not a convenience.</p>
+<h3 id="113-the-seven-deterministic-rules">11.3 The seven deterministic rules</h3>
+<p>These fire on unambiguous, explainable conditions:</p>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Condition</th>
+<th>Points</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>impossible_velocity</code></td>
+<td>Implied speed &gt; 900 km/h between consecutive transactions</td>
+<td>0.9</td>
+</tr>
+<tr>
+<td><code>new_device_and_location_change</code></td>
+<td>New device <strong>and</strong> new location simultaneously</td>
+<td>0.6</td>
+</tr>
+<tr>
+<td><code>card_testing</code></td>
+<td>≥3 transactions within 5 minutes, each small relative to the user's average</td>
+<td>0.6</td>
+</tr>
+<tr>
+<td><code>extreme_amount_deviation</code></td>
+<td>Amount ≥ 8× the user's mean, or z-score ≥ 4 (requires ≥5 prior transactions)</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td><code>transaction_burst</code></td>
+<td>≥5 in 1 minute, or ≥15 in 1 hour</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td><code>suspicious_counterparty</code></td>
+<td>Counterparty's confirmed-fraud rate ≥ 5%</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td><code>unusual_hour_high_amount</code></td>
+<td>High amount (≥3× average) at an hour rare for the user</td>
+<td>0.3</td>
+</tr>
+</tbody>
+</table>
+<p>Rule points are summed and capped at 1.0. Several rules require a <strong>minimum history</strong> (5 transactions) — judging a
+new account against a baseline of one transaction would manufacture false alarms.</p>
+<p><code>impossible_velocity</code> is also configured as a <strong>force-review rule</strong>: it escalates to REVIEW regardless of the
+total score, because a physically impossible journey is not negotiable evidence.</p>
+<h3 id="114-the-behavioural-score">11.4 The behavioural score</h3>
+<pre><code class="language-text">confidence = min(1, prior_transactions / 5)
+</code></pre>
+<p>The behavioural score is a weighted sum of baseline deviations, each scaled by <code>confidence</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Internal weight</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>log-scaled amount ratio</td>
+<td>0.30</td>
+</tr>
+<tr>
+<td>amount z-score / 5</td>
+<td>0.20</td>
+</tr>
+<tr>
+<td>5-minute velocity / 5</td>
+<td>0.15</td>
+</tr>
+<tr>
+<td>new device</td>
+<td>0.15</td>
+</tr>
+<tr>
+<td>location change</td>
+<td>0.15</td>
+</tr>
+<tr>
+<td>unusual hour</td>
+<td>0.05</td>
+</tr>
+</tbody>
+</table>
+<p>A new-device signal is discounted (×0.3) when the user has <em>no</em> prior devices — a first-ever device is normal, a
+<em>second</em> unfamiliar device is not.</p>
+<h3 id="115-from-score-to-action">11.5 From score to action</h3>
+<table>
+<thead>
+<tr>
+<th>Score</th>
+<th>Risk level</th>
+<th>Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0–29</td>
+<td>LOW</td>
+<td>ALLOW</td>
+</tr>
+<tr>
+<td>30–59</td>
+<td>MEDIUM</td>
+<td>REVIEW (or ALLOW if below review threshold)</td>
+</tr>
+<tr>
+<td>60–79</td>
+<td>HIGH</td>
+<td>REVIEW / BLOCK by threshold</td>
+</tr>
+<tr>
+<td>80–100</td>
+<td>CRITICAL</td>
+<td>BLOCK (at/above block threshold)</td>
+</tr>
+</tbody>
+</table>
+<p>Review and block thresholds are themselves <strong>tuned on validation data</strong>, not hand-picked. The live configuration
+uses a review threshold of 5.0 and a block threshold of 95.0 — deliberately wide, because the two thresholds serve
+different purposes: <em>review</em> catches suspicious activity for a human, <em>block</em> should fire only with high
+confidence.</p>
+<h3 id="116-live-model-configuration-and-an-honest-observation">11.6 Live model configuration and an honest observation</h3>
+<p>The trained live model (<code>live-hybrid-v1</code>) was tuned on 60,000 synthetic behavioural rows and produced:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PR-AUC</td>
+<td>0.6038</td>
+</tr>
+<tr>
+<td>ROC-AUC</td>
+<td>0.9393</td>
+</tr>
+<tr>
+<td>Review mode</td>
+<td>precision 0.184, recall 0.915, F1 0.307 @ threshold 0.05</td>
+</tr>
+<tr>
+<td>Block mode</td>
+<td>precision 0.926, recall 0.177, F1 0.298 @ threshold 0.95</td>
+</tr>
+<tr>
+<td><code>scale_pos_weight</code></td>
+<td>77.09</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tuned signal weights: <code>ml</code> = 0.9, <code>behavior</code> = 0.1, <code>anomaly</code> = 0.0, <code>rules</code> = 0.0.</strong></p>
+<p>This is worth stating plainly rather than hiding: <strong>the validation-based tuner assigned zero weight to the
+anomaly and rule signals.</strong> On this synthetic training distribution, the supervised model alone was the most
+informative combination, and the tuner — optimising the stated objective — correctly concluded the other signals
+added nothing <em>on that data</em>.</p>
+<p>The practical consequence is that in the current configuration, the deterministic rules contribute to the
+<strong>human-readable reasons and the alert narrative</strong> but not numerically to the score. This is a real finding about
+the tuning data, and it is reported as such. Two defensible readings exist, and the project does not pretend to
+settle it: either the synthetic training distribution does not contain the rule-triggering patterns in sufficient
+quantity, or the tuner's objective did not reward complementary coverage. Resolving it requires training data
+with verified attack scenarios, which is future work (§22).</p>
+<p>The two operating modes remain useful and complementary: the <em>review</em> threshold catches 91.5% of fraud for
+human review, while the <em>block</em> threshold is 92.6% precise — a system that blocks only what it is confident about.</p>
+<hr />
+<h2 id="12-backend-api-reference" class="page-break-before">12. Backend API Reference</h2>
+<p>The system exposes <strong>44 API operations</strong> under the <code>/api/v1</code> prefix, generated from the live OpenAPI schema.
+Interactive documentation is served at <code>/docs</code>.</p>
+<h3 id="121-authentication">12.1 Authentication</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/auth/register</code></td>
+<td>Create an account</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/auth/login</code></td>
+<td>Authenticate; returns a JWT</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/auth/me</code></td>
+<td>Current user's identity and role</td>
+</tr>
+</tbody>
+</table>
+<h3 id="122-transactions-and-scoring">12.2 Transactions and scoring</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/transactions/predict</code></td>
+<td><strong>Score a transaction</strong> — the core endpoint</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/transactions</code></td>
+<td>List transactions (paginated)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/transactions/{id}/detail</code></td>
+<td>Full transaction, prediction and explanation</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v1/transactions/{id}/action</code></td>
+<td>Analyst decision (allow / block)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="123-alerts-and-cases">12.3 Alerts and cases</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/alerts</code></td>
+<td>List fraud alerts</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v1/alerts/{id}</code></td>
+<td>Update alert status / resolve</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/cases</code></td>
+<td>List investigation cases</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/cases</code></td>
+<td>Create a case</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/cases/{id}</code></td>
+<td>Case detail</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v1/cases/{id}</code></td>
+<td>Update case status / priority</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/cases/{id}/notes</code></td>
+<td>Add an analyst note</td>
+</tr>
+</tbody>
+</table>
+<h3 id="124-dashboard-analytics">12.4 Dashboard analytics</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/dashboard/kpis</code></td>
+<td>Headline KPIs — <strong>live traffic only</strong></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/dashboard/trends</code></td>
+<td>Volume over time — <strong>live scope</strong></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/dashboard/corpus-trends</code></td>
+<td>Training-corpus series, explicitly separate</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/dashboard/risk-distribution</code></td>
+<td>Count per risk level — live only</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/dashboard/geographic</code></td>
+<td>Transactions by location — live only</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/dashboard/device-activity</code></td>
+<td>Activity by device type</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/dashboard/merchant-risk</code></td>
+<td>Highest-risk merchants</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/dashboard/model-info</code></td>
+<td>Active model version and metrics</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/dashboard/paysim-by-type</code></td>
+<td>Ground-truth fraud by PaySim type</td>
+</tr>
+</tbody>
+</table>
+<h3 id="125-monitoring-and-model-governance">12.5 Monitoring and model governance</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/monitoring/live-feed</code></td>
+<td>Live feed status: running, generated, errors</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/monitoring/drift</code></td>
+<td>Current PSI drift measurement</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/monitoring/history</code></td>
+<td>Drift history over time</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/monitoring/models</code></td>
+<td>Model registry</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/monitoring/models/{id}/activate</code></td>
+<td>Activate a registered model version</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/monitoring/security</code></td>
+<td>Security control test matrix</td>
+</tr>
+</tbody>
+</table>
+<h3 id="126-administration">12.6 Administration</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/users</code></td>
+<td>List users (admin only)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/users</code></td>
+<td>Create a user with a role (admin only)</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v1/users/{id}/role</code></td>
+<td>Change a user's role (admin only)</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/users/{id}</code></td>
+<td>Delete a user (admin only)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/audit</code></td>
+<td>Audit log with filters and pagination</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/reports/export</code></td>
+<td>Export a report</td>
+</tr>
+</tbody>
+</table>
+<h3 id="127-profiles-merchants-feedback-and-graph">12.7 Profiles, merchants, feedback and graph</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/profiles</code></td>
+<td>Top behavioural profiles</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/profiles/{user_id}</code></td>
+<td>One user's behavioural profile</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/merchants</code></td>
+<td>Merchant risk list</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/merchants/{id}</code></td>
+<td>One merchant</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/feedback</code></td>
+<td>Recorded analyst feedback</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/feedback</code></td>
+<td>Record confirmed-fraud / false-positive</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/feedback/retraining-manifest</code></td>
+<td>Build a retraining manifest</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/graph/risk</code></td>
+<td>Network risk across user / device / merchant</td>
+</tr>
+</tbody>
+</table>
+<h3 id="128-health">12.8 Health</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/health</code></td>
+<td>Liveness check</td>
+</tr>
+</tbody>
+</table>
+<h3 id="129-error-format">12.9 Error format</h3>
+<p>Every error uses one consistent shape, and <strong>stack traces are never leaked</strong>:</p>
+<pre><code class="language-json">{ &quot;error&quot;: { &quot;code&quot;: &quot;EMAIL_EXISTS&quot;, &quot;message&quot;: &quot;Email already registered&quot; } }
+</code></pre>
+<hr />
+<h2 id="13-database-design" class="page-break-before">13. Database Design</h2>
+<p><strong>14 tables</strong> model users, transactions, predictions, alerts, cases, notes, feedback, merchants, behaviour,
+model governance and auditing. Plus one pre-aggregated rollup table for performance.</p>
+<h3 id="131-table-reference">13.1 Table reference</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Table</th>
+<th>Columns</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>users</code></td>
+<td>5</td>
+<td>Accounts, bcrypt hash, role</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>transactions</code></td>
+<td>11</td>
+<td>Every scored transaction, live and corpus</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>devices</code></td>
+<td>5</td>
+<td>Device fingerprint per user; first-seen time</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>fraud_predictions</code></td>
+<td>16</td>
+<td>Score, level, decision, explanation, per-signal breakdown</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>fraud_alerts</code></td>
+<td>7</td>
+<td>Alert severity, status, resolution</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>fraud_cases</code></td>
+<td>10</td>
+<td>Investigation case, priority, assignment, closure</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>case_notes</code></td>
+<td>5</td>
+<td>Analyst notes on a case</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>fraud_feedback</code></td>
+<td>8</td>
+<td>Confirmed fraud / false positive, with feature snapshot</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>audit_logs</code></td>
+<td>8</td>
+<td>Every admin action and every login attempt</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>merchants</code></td>
+<td>5</td>
+<td>Merchant and category risk</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>user_behavior_profiles</code></td>
+<td>12</td>
+<td>Rolling behavioural summary per user</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>model_versions</code></td>
+<td>14</td>
+<td>Model registry: metrics, activation, artefact path</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>drift_snapshots</code></td>
+<td>6</td>
+<td>PSI measurements over time</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>security_events</code></td>
+<td>5</td>
+<td>Security control test results</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>paysim_rollup_hourly</code></td>
+<td>—</td>
+<td>Pre-aggregated hourly corpus totals (performance)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="132-column-detail-for-the-core-tables">13.2 Column detail for the core tables</h3>
+<p><strong><code>transactions</code></strong> — <code>id</code>, <code>user_id</code>, <code>merchant_id</code>, <code>device_id</code>, <code>amount</code>, <code>currency</code>, <code>location</code>,
+<code>ip_address</code>, <code>payment_method</code>, <code>status</code>, <code>created_at</code></p>
+<p><code>status</code> is <code>allowed</code> or <code>flagged</code>. The identifier's <em>sign</em> carries meaning: negative = training corpus,
+non-negative = live traffic.</p>
+<p><strong><code>fraud_predictions</code></strong> — <code>id</code>, <code>transaction_id</code>, <code>probability</code>, <code>risk_score</code>, <code>risk_level</code>, <code>model_version</code>,
+<code>explanation</code>, <code>decision</code>, <code>anomaly_score</code>, <code>behavior_score</code>, <code>rule_score</code>, <code>triggered_rules</code>, <code>reasons</code>,
+<code>signal_contributions</code>, <code>weights_used</code>, <code>created_at</code></p>
+<p>Storing the <strong>individual signal scores, the triggered rules, the per-signal contributions and the weights
+actually used</strong> is what makes a historical decision auditable months later. Because the exact inputs to every
+past score are persisted, any decision can be reconstructed and explained — including which model version and
+which weight configuration produced it.</p>
+<p><strong><code>audit_logs</code></strong> — <code>id</code>, <code>user_id</code>, <code>action</code>, <code>target_type</code>, <code>target_id</code>, <code>detail</code>, <code>ip_address</code>, <code>created_at</code></p>
+<p>The <code>detail</code> column was added by migration <code>c3d81f4a2b90</code> so an entry can explain itself, e.g.
+<code>analyst -&gt; user</code> for a role change, or <code>wrong password for verify@fraudshield.ai</code> for a failed login.</p>
+<h3 id="133-referential-integrity">13.3 Referential integrity</h3>
+<ul>
+<li><code>fraud_predictions.transaction_id</code> → <code>transactions.id</code> (unique — one prediction per transaction)</li>
+<li><code>fraud_alerts.transaction_id</code> → <code>transactions.id</code></li>
+<li><code>fraud_cases.alert_id</code> → <code>fraud_alerts.id</code></li>
+<li><code>case_notes.case_id</code> → <code>fraud_cases.id</code></li>
+<li><code>fraud_feedback.prediction_id</code> / <code>.case_id</code> → their parent tables</li>
+<li><code>transactions.user_id</code> → <code>users.id</code>; <code>transactions.device_id</code> → <code>devices.id</code></li>
+</ul>
+<p>The test suite asserts <strong>zero orphaned prediction rows</strong>, so a prediction can never exist without its
+transaction.</p>
+<h3 id="134-migrations">13.4 Migrations</h3>
+<table>
+<thead>
+<tr>
+<th>Revision</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>4af2b79611aa</code></td>
+<td>Initial schema — users, merchants, devices</td>
+</tr>
+<tr>
+<td><code>9b2c7e4a1f20</code></td>
+<td>Major project upgrade</td>
+</tr>
+<tr>
+<td><code>7c9e4d2f3a11</code></td>
+<td>Hybrid prediction fields</td>
+</tr>
+<tr>
+<td><code>c3d81f4a2b90</code></td>
+<td><code>audit_logs.detail</code> column</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="14-frontend-dashboard" class="page-break-before">14. Frontend Dashboard</h2>
+<p>Eight pages, built with React 19, Tailwind CSS v4 and Recharts.</p>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Route</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Login</strong></td>
+<td><code>/login</code></td>
+<td>Authentication; failure shows a clear message</td>
+</tr>
+<tr>
+<td><strong>Dashboard</strong></td>
+<td><code>/dashboard</code></td>
+<td>KPIs, live trend chart, risk distribution, geographic view, live feed panel, separate corpus panel</td>
+</tr>
+<tr>
+<td><strong>Alerts</strong></td>
+<td><code>/alerts</code></td>
+<td>Fraud alert queue with severity and status</td>
+</tr>
+<tr>
+<td><strong>Transaction Detail</strong></td>
+<td><code>/transactions/:id</code></td>
+<td>Full scoring breakdown and SHAP explanation</td>
+</tr>
+<tr>
+<td><strong>Cases</strong></td>
+<td><code>/cases</code></td>
+<td>Investigation management with notes</td>
+</tr>
+<tr>
+<td><strong>Audit Log</strong></td>
+<td><code>/audit</code></td>
+<td>Administrator action trail with filters</td>
+</tr>
+<tr>
+<td><strong>Users</strong></td>
+<td><code>/users</code></td>
+<td>Create users, assign roles, delete accounts</td>
+</tr>
+<tr>
+<td><strong>Intelligence</strong></td>
+<td><code>/intelligence</code></td>
+<td>Drift, model registry, security matrix, profiles</td>
+</tr>
+</tbody>
+</table>
+<h3 id="141-dashboard-design-decisions">14.1 Dashboard design decisions</h3>
+<p><strong>The dashboard shows live traffic only.</strong> KPI cards, the trend chart, the risk distribution and the geographic
+view are all scoped to live transactions. The training corpus is displayed in a separate, clearly-labelled panel
+reading <em>"Training corpus (PaySim) — not live volume"</em>, with a note that it is excluded from the KPIs above.</p>
+<p><strong>The trend chart is hourly and starts empty.</strong> On a freshly reset system it reads <em>"Waiting for the first live
+transactions…"</em> and fills in as the feed runs. A chart pre-populated with six months of historical data would
+hide the fact that nothing is actually happening right now.</p>
+<p><strong>The live feed panel always renders.</strong> When no event has arrived it states <em>"Live feed connected — waiting for
+the next transaction."</em> — distinguishing "connected but idle" from "broken", which an empty panel cannot convey.</p>
+<p><strong>The feed status is visible.</strong> A banner reports whether the feed is running, so a stalled feed is immediately
+diagnosable rather than silently showing stale numbers.</p>
+<h3 id="142-resilience">14.2 Resilience</h3>
+<p>The Intelligence page loads five independent panels using <code>Promise.allSettled</code> rather than <code>Promise.all</code>. With
+<code>Promise.all</code>, a single failing request discards <strong>every</strong> successful result and the whole page renders empty.
+With <code>Promise.allSettled</code>, each panel renders independently — one unavailable endpoint cannot blank the page.</p>
+<h3 id="143-audit-page">14.3 Audit page</h3>
+<p>The audit view is built for an investigator's actual questions:</p>
+<ul>
+<li><strong>Actor</strong> shown as an email address, not a raw numeric id</li>
+<li><strong>Target</strong> resolved to a human label (<code>user verify@fraudshield.ai</code>)</li>
+<li><strong>Detail</strong> explaining the event in plain language</li>
+<li><strong>Failed logins highlighted in red</strong> — these are the rows an investigator is looking for</li>
+<li><strong>"Auth events only" toggle</strong> and a per-action dropdown</li>
+<li>Pagination with the true page size</li>
+</ul>
+<hr />
+<h2 id="15-real-time-architecture" class="page-break-before">15. Real-Time Architecture</h2>
+<h3 id="151-two-mechanisms-one-purpose">15.1 Two mechanisms, one purpose</h3>
+<table>
+<thead>
+<tr>
+<th>Mechanism</th>
+<th>Used for</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Built-in live feed</strong></td>
+<td>Continuously generating demo traffic</td>
+<td>The dashboard is never empty; no external process needed</td>
+</tr>
+<tr>
+<td><strong>WebSocket (Socket.IO)</strong></td>
+<td>Pushing results to dashboards</td>
+<td>Sub-second updates without polling</td>
+</tr>
+</tbody>
+</table>
+<h3 id="152-the-built-in-live-feed">15.2 The built-in live feed</h3>
+<p>A background task inside the FastAPI process generates synthetic traffic and pushes it through
+<code>ingest_transaction()</code> — <strong>the same function the HTTP endpoint calls</strong>. This is enforced structurally rather
+than by convention: there is one pipeline, and both callers invoke it.</p>
+<blockquote>
+<p><strong>Why this matters.</strong> When the feed was a separate simulator making HTTP requests, the pipeline existed in two
+places. Any change had to be made twice, and the dashboard silently diverged from what the endpoint actually
+did. Extracting the pipeline into a single shared function removed that entire class of bug.</p>
+</blockquote>
+<p><strong>Configuration</strong> (environment variables):</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LIVE_FEED_ENABLED</code></td>
+<td><code>true</code></td>
+<td>Start the feed on application startup</td>
+</tr>
+<tr>
+<td><code>LIVE_FEED_INTERVAL_SECONDS</code></td>
+<td><code>5.0</code></td>
+<td>Delay between bursts</td>
+</tr>
+<tr>
+<td><code>LIVE_FEED_BURST</code></td>
+<td><code>3</code></td>
+<td>Transactions per burst → 3 per 5 s = 0.6/s</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ten fraud scenarios</strong> are generated, weighted to give a realistic spread: <code>normal</code> (40), <code>suspicious</code> (15),
+<code>high_value</code> (10), <code>rapid_repeated</code> (8), <code>new_device</code> (8), <code>unusual_location</code> (6), <code>card_testing</code> (4),
+<code>account_takeover</code> (4), <code>transaction_splitting</code> (3), <code>fraud_ring</code> (2).</p>
+<p><strong>Error isolation.</strong> A failing transaction increments an error counter and the feed <strong>continues</strong>. It is never
+allowed to die — otherwise one transient database error would silently freeze the dashboard for the rest of the
+session. <code>GET /monitoring/live-feed</code> exposes <code>running</code>, <code>generated</code>, <code>errors</code> and <code>last_error</code> so the failure
+would be visible rather than silent.</p>
+<p><strong>The feed starts in the application lifespan</strong>, so a signed-in dashboard always has traffic. It can be disabled
+with <code>LIVE_FEED_ENABLED=false</code> — which is exactly what the automated test suite does, to keep tests deterministic.</p>
+<h3 id="153-verified-behaviour">15.3 Verified behaviour</h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Verified</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total starts at exactly 0 on a clean reset</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Total increases automatically with no user action</td>
+<td>✅ (observed 495 → 501 over 12 s)</td>
+</tr>
+<tr>
+<td>Live ids are contiguous from 0</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Corpus never appears in live counts</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Feed survives individual transaction failures</td>
+<td>✅ (unit-tested)</td>
+</tr>
+<tr>
+<td>Feed errors remain 0 under sustained running</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="16-security-controls" class="page-break-before">16. Security Controls</h2>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Implementation</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Password hashing</td>
+<td>bcrypt via passlib — never plaintext</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Token authentication</td>
+<td>JWT, HS256, 60-minute expiry, secret from environment</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Access control</td>
+<td><code>require_role([...])</code> dependency, applied per route</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Input validation</td>
+<td>Pydantic schemas on every request body</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>SQL injection prevention</td>
+<td>SQLAlchemy ORM — parameterised queries only</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>CORS</td>
+<td>Explicit allow-list, never <code>"*"</code></td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Rate limiting</td>
+<td>slowapi: login 10/min, prediction 60/min</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Error handling</td>
+<td>Consistent <code>{"error": {...}}</code> shape; no stack traces leaked</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Structured logging</td>
+<td>Method, path, status, latency; no passwords or full tokens</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Audit trail</td>
+<td>Every admin action, every login attempt</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>Secrets management</td>
+<td><code>.env</code> gitignored; <code>.env.example</code> holds placeholders only</td>
+<td>Implemented</td>
+</tr>
+<tr>
+<td>HTTPS</td>
+<td>Enforced by the hosting platform in deployment</td>
+<td>Deployment-time</td>
+</tr>
+</tbody>
+</table>
+<h3 id="161-verified-by-automated-tests">16.1 Verified by automated tests</h3>
+<table>
+<thead>
+<tr>
+<th>Attack / condition</th>
+<th>Expected</th>
+<th>Verified</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No token supplied</td>
+<td>401</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Invalid / tampered JWT</td>
+<td>401</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Correct token, wrong role (admin-only route)</td>
+<td>403</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Correct token, wrong role (analyst route)</td>
+<td>403</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>SQL-injection string in <code>amount</code></td>
+<td>422 (rejected before reaching SQL)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Negative amount</td>
+<td>422</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Rate limit exceeded</td>
+<td>429</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Duplicate user email</td>
+<td>409 <code>EMAIL_EXISTS</code></td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Password present in audit records</td>
+<td>Never stored</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>The SQL-injection test is worth emphasising: the malicious string is rejected by <strong>Pydantic validation before it
+can reach the database layer at all</strong>. Defence is structural, not a filter that might be bypassed.</p>
+<h3 id="162-never-stored-anywhere">16.2 Never stored, anywhere</h3>
+<p>Real card numbers, CVVs, OTPs, merchant credentials and banking details appear <strong>nowhere</strong> — not in the code,
+not in the datasets, not in the test fixtures, not in the simulator. Passwords are stored only as bcrypt hashes,
+and a test asserts that no submitted password string ever appears in an audit record.</p>
+<hr />
+<h2 id="17-audit-trail-and-accountability" class="page-break-before">17. Audit Trail and Accountability</h2>
+<h3 id="171-what-is-recorded">17.1 What is recorded</h3>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Recorded detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>auth.login</code></td>
+<td>Actor, resolved user target, <code>role=&lt;role&gt;</code>, IP, timestamp</td>
+</tr>
+<tr>
+<td><code>auth.login_failed</code></td>
+<td>Attempted email, reason (<code>wrong password for …</code> / <code>unknown email: …</code>), IP</td>
+</tr>
+<tr>
+<td><code>user.create</code></td>
+<td>Email created and the role assigned</td>
+</tr>
+<tr>
+<td><code>user.update_role</code></td>
+<td>Explicit <code>analyst -&gt; user</code> transition</td>
+</tr>
+<tr>
+<td><code>user.delete</code></td>
+<td>Which account was removed</td>
+</tr>
+</tbody>
+</table>
+<h3 id="172-failed-logins-are-recorded">17.2 Failed logins are recorded</h3>
+<p>Recording only <em>successful</em> logins leaves the most security-relevant gap: you cannot detect credential
+brute-forcing if failed attempts are discarded. Both failure modes are captured and distinguished:</p>
+<ul>
+<li><strong>Wrong password for a known account</strong> — the account is identified as the target, which is the signature of a
+  brute-force attempt against a specific user.</li>
+<li><strong>Unknown email</strong> — a different attack pattern: credential stuffing or address enumeration.</li>
+</ul>
+<h3 id="173-human-readable-entries">17.3 Human-readable entries</h3>
+<p>An audit log that stores only <code>user_id: 2, action: update</code> is technically complete and practically useless.
+Entries are resolved to a human label and a plain-language detail:</p>
+<table>
+<thead>
+<tr>
+<th>Before</th>
+<th>After</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user_id: 2, action: auth.login</code></td>
+<td><code>verify@fraudshield.ai — auth.login — user verify@fraudshield.ai — role=admin</code></td>
+</tr>
+<tr>
+<td><code>action: user.update_role</code></td>
+<td><code>persist-…@fraudshield.ai: analyst -&gt; user</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="174-a-deliberate-non-action">17.4 A deliberate non-action</h3>
+<p>Audit rows written <strong>before</strong> the <code>detail</code> column existed are left exactly as they were. They are not
+back-filled with invented values, because a reconstructed audit entry is no longer evidence. This is stated
+explicitly and covered by a test asserting that legacy rows are not retroactively rewritten.</p>
+<h3 id="175-no-credentials-in-the-audit-log">17.5 No credentials in the audit log</h3>
+<p>A dedicated test submits a distinctive password and asserts that the string appears nowhere in the audit
+response. This is a regression guard, not a one-time check.</p>
+<hr />
+<h2 id="18-testing-strategy-and-results" class="page-break-before">18. Testing Strategy and Results</h2>
+<h3 id="181-totals">18.1 Totals</h3>
+<table>
+<thead>
+<tr>
+<th>Suite</th>
+<th>Tests</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backend (pytest)</td>
+<td><strong>46</strong></td>
+<td>All passing</td>
+</tr>
+<tr>
+<td>Machine learning (pytest)</td>
+<td><strong>49</strong></td>
+<td>All passing</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>95</strong></td>
+<td><strong>All passing</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="182-backend-coverage-by-file">18.2 Backend coverage by file</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Tests</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>test_live_feed.py</code></td>
+<td>16</td>
+<td>Feed scoring, resilience, live-only scoping, audit, user persistence</td>
+</tr>
+<tr>
+<td><code>test_rbac_and_security.py</code></td>
+<td>8</td>
+<td>Authentication, authorisation, injection, rate limiting</td>
+</tr>
+<tr>
+<td><code>test_auth.py</code></td>
+<td>7</td>
+<td>Login, registration, token handling</td>
+</tr>
+<tr>
+<td><code>test_transactions_integration.py</code></td>
+<td>7</td>
+<td>End-to-end prediction, live id allocation</td>
+</tr>
+<tr>
+<td><code>test_decision_engine_unit.py</code></td>
+<td>6</td>
+<td>Risk levels, thresholds, rule logic</td>
+</tr>
+<tr>
+<td><code>test_hybrid_integration.py</code></td>
+<td>2</td>
+<td>Hybrid scoring integration</td>
+</tr>
+</tbody>
+</table>
+<h3 id="183-a-real-bug-the-tests-found">18.3 A real bug the tests found</h3>
+<p>The test suite uncovered a genuine defect during development: the application lifespan was starting the live feed
+<strong>inside the test run</strong>, where the background writer wrote to a <em>different</em> in-memory database than the one under
+test. This made every count-based assertion non-deterministic — tests could pass or fail depending on timing.</p>
+<p>Fixed by setting <code>LIVE_FEED_ENABLED=false</code> in <code>conftest.py</code> and covering feed behaviour explicitly in
+<code>test_live_feed.py</code>. This is precisely the class of bug a test suite exists to find: not a crash, but a silent
+loss of trustworthiness in the results.</p>
+<h3 id="184-test-isolation">18.4 Test isolation</h3>
+<p>Tests use <strong>in-memory SQLite</strong> with a static connection pool, so the suite needs no external database and runs in
+under a minute. SQLAlchemy's dependency override swaps the real session for the test session. Rate-limit buckets
+are reset between tests.</p>
+<h3 id="185-what-is-verified-end-to-end">18.5 What is verified end-to-end</h3>
+<table>
+<thead>
+<tr>
+<th>Behaviour</th>
+<th>Verification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A clean system reports 0 total transactions</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>Live transactions count upward</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>A corpus row never enters live KPIs</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>Risk and geographic panels sum to the live total</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>Trends report live scope; corpus trends stay separate</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>A feed transaction produces a real prediction</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>The feed survives a failing transaction</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>Successful and failed logins are both audited</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>Passwords never appear in audit records</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>Created users persist and can log in</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>Role changes persist and take effect</td>
+<td>Automated test</td>
+</tr>
+<tr>
+<td>The dashboard count rises with no interaction</td>
+<td><strong>Live browser verification</strong></td>
+</tr>
+<tr>
+<td>Failed logins are highlighted in the UI</td>
+<td><strong>Live browser verification</strong></td>
+</tr>
+<tr>
+<td>Frontend compiles with no errors</td>
+<td><code>npm run build</code> ✅</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="19-how-to-run-the-system" class="page-break-before">19. How to Run the System</h2>
+<h3 id="191-prerequisites">19.1 Prerequisites</h3>
+<p>Python 3.11+, Node.js 18+, and either PostgreSQL 16 or SQLite (bundled).</p>
+<h3 id="192-backend">19.2 Backend</h3>
+<pre><code class="language-bash">cd backend
+pip install -r requirements.txt
+
+# environment
+#   DATABASE_URL=postgresql://user:pass@localhost:5432/fraudshield
+#   JWT_SECRET=&lt;a long random string&gt;
+#   LIVE_FEED_ENABLED=true          # built-in live feed on
+
+alembic upgrade head               # apply database migrations
+uvicorn app.main:app --reload      # start the API
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API</td>
+<td>http://127.0.0.1:8000</td>
+</tr>
+<tr>
+<td>Interactive API docs</td>
+<td>http://127.0.0.1:8000/docs</td>
+</tr>
+<tr>
+<td>Health check</td>
+<td>http://127.0.0.1:8000/health</td>
+</tr>
+</tbody>
+</table>
+<h3 id="193-frontend">19.3 Frontend</h3>
+<pre><code class="language-bash">cd frontend
+npm install
+npm run dev
+</code></pre>
+<p>Open http://localhost:5173 and sign in.</p>
+<h3 id="194-live-feed-configuration">19.4 Live feed configuration</h3>
+<p>The feed starts automatically. To change its pace:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LIVE_FEED_INTERVAL_SECONDS=2</code></td>
+<td>Twice as fast</td>
+</tr>
+<tr>
+<td><code>LIVE_FEED_BURST=10</code></td>
+<td>Ten per burst</td>
+</tr>
+<tr>
+<td><code>LIVE_FEED_ENABLED=false</code></td>
+<td>Disable entirely (also what the test suite does)</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/monitoring/live-feed</code></td>
+<td>Inspect current status</td>
+</tr>
+</tbody>
+</table>
+<h3 id="195-running-the-tests">19.5 Running the tests</h3>
+<pre><code class="language-bash">cd backend &amp;&amp; pytest -q            # 46 tests
+cd ml/src   &amp;&amp; pytest -q           # 49 tests
+cd frontend &amp;&amp; npm run build       # compile check
+</code></pre>
+<hr />
+<h2 id="20-results-summary" class="page-break-before">20. Results Summary</h2>
+<h3 id="201-machine-learning-paysim-test-split-1293523-rows-4258-fraud">20.1 Machine learning (PaySim test split, 1,293,523 rows / 4,258 fraud)</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Best value</th>
+<th>Model</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>PR-AUC</strong> (primary metric)</td>
+<td><strong>0.5203</strong></td>
+<td>XGBoost + class weighting</td>
+</tr>
+<tr>
+<td>ROC-AUC</td>
+<td>0.9710</td>
+<td>XGBoost + SMOTE</td>
+</tr>
+<tr>
+<td>F1 (balanced mode, XGBoost CW)</td>
+<td>0.4725</td>
+<td>Random Forest balanced</td>
+</tr>
+<tr>
+<td>Recall (min-cost mode, XGBoost CW)</td>
+<td>0.737</td>
+<td>XGBoost + class weighting</td>
+</tr>
+<tr>
+<td>Precision (block mode)</td>
+<td>0.926</td>
+<td>XGBoost + class weighting</td>
+</tr>
+<tr>
+<td>Inference latency</td>
+<td>7.2 ms median</td>
+<td>XGBoost + class weighting</td>
+</tr>
+</tbody>
+</table>
+<h3 id="202-dataset">20.2 Dataset</h3>
+<p>6,362,620 transactions · 8,213 fraud · 0.1291% fraud rate · zero missing values · zero duplicates.</p>
+<h3 id="203-engineering">20.3 Engineering</h3>
+<table>
+<thead>
+<tr>
+<th>Measure</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Automated tests</td>
+<td><strong>95 passing</strong> (46 backend + 49 ML)</td>
+</tr>
+<tr>
+<td>API operations</td>
+<td>44</td>
+</tr>
+<tr>
+<td>Database tables</td>
+<td>14 (+1 rollup)</td>
+</tr>
+<tr>
+<td>Frontend pages</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Live features per transaction</td>
+<td>26</td>
+</tr>
+<tr>
+<td>Deterministic fraud rules</td>
+<td>7</td>
+</tr>
+<tr>
+<td>Model variants evaluated</td>
+<td>8</td>
+</tr>
+<tr>
+<td>Dashboard count growth, unattended</td>
+<td>Verified (495 → 501 in 12 s)</td>
+</tr>
+<tr>
+<td>Frontend build</td>
+<td>Clean</td>
+</tr>
+<tr>
+<td>Browser console errors</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<h3 id="204-what-the-system-demonstrably-does">20.4 What the system demonstrably does</h3>
+<ol>
+<li>Scores a transaction against 26 point-in-time behavioural features in <strong>~7 ms</strong>.</li>
+<li>Explains each decision in plain language, with per-feature attribution.</li>
+<li>Catches fraud that is only visible as a <em>combination</em> of weak signals.</li>
+<li>Catches impossible travel by pure geometry, with no training data at all.</li>
+<li>Starts from a genuinely empty state and fills up live, with no manual step.</li>
+<li>Enforces role-based access control on every route and records every admin action.</li>
+<li>Records failed logins, so brute-force attempts are visible after the fact.</li>
+<li>Remains honest: the corpus is excluded from live KPIs and labelled separately.</li>
+</ol>
+<hr />
+<h2 id="21-limitations-and-honest-caveats" class="page-break-before">21. Limitations and Honest Caveats</h2>
+<p>A report that lists only strengths is not credible. These are the real constraints.</p>
+<h3 id="211-data-limitations">21.1 Data limitations</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Limitation</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L1</td>
+<td>PaySim is <strong>synthetic</strong></td>
+<td>Results describe the simulation, not real fraud. Absolute metrics will not transfer to production.</td>
+</tr>
+<tr>
+<td>L2</td>
+<td>Fraud appears in only 2 of 5 transaction types</td>
+<td>A model trained on this data could learn "only CASH_OUT and TRANSFER are risky" — a false rule that would be actively harmful in production.</td>
+</tr>
+<tr>
+<td>L3</td>
+<td>Maximum 3 transactions per user</td>
+<td>Behavioural features (velocity, baseline deviation) are <strong>weakly supported</strong> — there is very little history to learn from. This is the single biggest dataset limitation.</td>
+</tr>
+<tr>
+<td>L4</td>
+<td>0.146% of users have more than one transaction</td>
+<td>Repeat-offender and escalation patterns cannot be studied.</td>
+</tr>
+<tr>
+<td>L5</td>
+<td>Test fraud rate (0.329%) is 4× the training rate (0.084%)</td>
+<td>Chronological variation, not a bug — but it means the model is selected in a calm regime and tested in a turbulent one.</td>
+</tr>
+<tr>
+<td>L6</td>
+<td>24-hour label delay</td>
+<td>Models must be trained without labels that do not yet exist; a small amount of the most recent data is unusable.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="212-model-limitations">21.2 Model limitations</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Limitation</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L7</td>
+<td>Tuner assigned <strong>zero weight</strong> to anomaly and rule signals</td>
+<td>In the current configuration the deterministic rules inform the <em>explanation</em> but not the score. See §11.6.</td>
+</tr>
+<tr>
+<td>L8</td>
+<td>Best PR-AUC is 0.52, not near-perfect</td>
+<td>Roughly half of all fraud is still missed at any single threshold. This is realistic for this class of problem, but it must not be glossed over.</td>
+</tr>
+<tr>
+<td>L9</td>
+<td>The live model is trained on <strong>synthetic</strong> behavioural data</td>
+<td>Its feature relationships are only as valid as the generator that produced them.</td>
+</tr>
+<tr>
+<td>L10</td>
+<td>Rule weights were hand-specified as <em>points</em></td>
+<td>Rule <em>thresholds</em> are documented constants; only the signal <em>weights</em> were tuned on validation data.</td>
+</tr>
+<tr>
+<td>L11</td>
+<td>Class weighting degrades probability calibration (Brier 0.0358 vs 0.0042 for SMOTE)</td>
+<td>Scores are reliable for <em>ranking</em> but should not be quoted as calibrated probabilities.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="213-system-limitations">21.3 System limitations</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Limitation</th>
+<th>Consequence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L12</td>
+<td>Hard browser refresh clears the session</td>
+<td>The JWT is held in memory, so a refresh returns the user to the login screen. Not fixed — out of scope for the last change set.</td>
+</tr>
+<tr>
+<td>L13</td>
+<td>No HTTPS in local development</td>
+<td>Tokens travel in cleartext locally. Production deployment provides TLS.</td>
+</tr>
+<tr>
+<td>L14</td>
+<td>Single-process background feed</td>
+<td>The feed runs in the application process; running multiple workers would produce multiple feeds.</td>
+</tr>
+<tr>
+<td>L15</td>
+<td>In-memory rate-limit state</td>
+<td>Rate limits reset on restart and are not shared across processes.</td>
+</tr>
+<tr>
+<td>L16</td>
+<td><code>/merchants</code> is empty in the demo database</td>
+<td>No merchant records exist, so merchant analytics have nothing to show.</td>
+</tr>
+<tr>
+<td>L17</td>
+<td>No pagination on some list endpoints</td>
+<td>Large result sets could be slow at scale.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="214-the-most-important-limitation">21.4 The most important limitation</h3>
+<p><strong>This system has never seen real fraud.</strong> Every number in §20 comes from a public synthetic dataset or from
+synthetic traffic. Public-dataset metrics do not establish production banking performance. A real deployment
+would require real (properly anonymised and legally obtained) labelled data, adversarial evaluation, regulatory
+sign-off, and — above all — a much longer evaluation period.</p>
+<hr />
+<h2 id="22-future-work" class="page-break-before">22. Future Work</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Proposed work</th>
+<th>Why it matters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F1</td>
+<td>Acquire a dataset with genuine repeat behaviour (multiple transactions per user)</td>
+<td>Directly addresses L3 — the largest constraint on the behavioural features</td>
+</tr>
+<tr>
+<td>F2</td>
+<td>Retrain with attack scenarios present, then re-tune</td>
+<td>Tests whether the rules earn non-zero weight, resolving the §11.6 question empirically</td>
+</tr>
+<tr>
+<td>F3</td>
+<td>Persist the JWT in <code>httpOnly</code> cookies</td>
+<td>Fixes L12; also reduces token exposure to client-side script</td>
+</tr>
+<tr>
+<td>F4</td>
+<td>Move to <code>pgvector</code> or a graph store for network risk</td>
+<td>Makes the graph endpoint genuinely useful for fraud-ring detection</td>
+</tr>
+<tr>
+<td>F5</td>
+<td>Automated retraining on feedback, with champion/challenger evaluation</td>
+<td>Closes the feedback loop rather than only recording it</td>
+</tr>
+<tr>
+<td>F6</td>
+<td>Alert on PSI drift to trigger automatic review</td>
+<td>Makes drift monitoring operational</td>
+</tr>
+<tr>
+<td>F7</td>
+<td>Per-tenant isolation and a real permission matrix</td>
+<td>Required for any multi-user deployment</td>
+</tr>
+<tr>
+<td>F8</td>
+<td>Full PCI-DSS-aligned handling of real card data</td>
+<td>The only path from prototype to production — and a multi-year effort</td>
+</tr>
+<tr>
+<td>F9</td>
+<td>Load testing and horizontal scaling</td>
+<td>The feed must become a proper queue consumer beyond a single process</td>
+</tr>
+<tr>
+<td>F10</td>
+<td>Explainability reviewed with real analysts</td>
+<td>Ensure explanations match how fraud investigators actually reason</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="23-conclusion" class="page-break-before">23. Conclusion</h2>
+<p>FraudShield AI delivers a complete, working and honestly-evaluated fraud-detection system.</p>
+<p><strong>Technically</strong>, the project achieves its objectives: a leak-free benchmark on 6.36 million real public-dataset
+transactions, eight model variants compared under a strict protocol, a selected model at 0.5203 PR-AUC with
+7.2 ms inference, a hybrid risk engine combining four independent signals, 44 API operations across 14 database
+tables, an 8-page real-time dashboard, and 95 passing automated tests.</p>
+<p><strong>The most defensible engineering decisions</strong> are architectural, not flashy:</p>
+<ul>
+<li><strong>A single shared pipeline.</strong> The HTTP endpoint and the live feed invoke the same function, so the dashboard
+  cannot silently diverge from the API. This eliminated a whole category of bug.</li>
+<li><strong>Strict live/corpus separation.</strong> Training data is never counted as operational activity, so the headline
+  numbers mean what they claim to mean.</li>
+<li><strong>Point-in-time feature construction</strong>, enforced structurally by computing features <em>before</em> persisting the
+  row — so a transaction can never contribute to its own history.</li>
+<li><strong>Multi-signal scoring</strong>, because each signal catches fraud the others miss.</li>
+<li><strong>Recording failed logins</strong>, because discarding them makes brute-force attacks invisible.</li>
+<li><strong>Reporting the tuner's zero weights rather than hiding them</strong>, even though it complicates the story.</li>
+</ul>
+<p><strong>The honest conclusion is also a limit.</strong> The strongest result here is PR-AUC 0.52 — meaning at any single
+threshold the system misses roughly half of all fraud. That is realistic for this class of problem, but it is the
+number that should govern any claim about the system's usefulness. Combined with a dataset in which users have at
+most three transactions, the behavioural features — the most human-interpretable part of the design — are the
+weakest-supported component, and no amount of model tuning can fix that; only better data can.</p>
+<p>What the project does establish is the <strong>complete path</strong> from raw data to a defensible real-time decision with an
+audit trail, and the engineering discipline to know which parts of that path are strong and which are not.</p>
+<hr />
+<h2 id="appendix-a-complete-file-map" class="page-break-before">Appendix A — Complete File Map</h2>
+<h3 id="backend-backend">Backend (<code>backend/</code>)</h3>
+<pre><code class="language-text">app/
+├── main.py                     Application setup, lifespan, router registration
+├── config/settings.py          Environment-driven configuration
+├── database/session.py         Engine, session factory
+├── auth/
+│   ├── security.py             bcrypt hashing, JWT creation
+│   └── dependencies.py         get_current_user, require_role
+├── models/                     14 SQLAlchemy ORM models
+├── schemas/                    Pydantic request/response validation
+├── routes/                     13 routers → 44 operations
+├── services/
+│   ├── prediction_pipeline.py  ★ Single source of truth for scoring
+│   ├── feature_engineering.py  Point-in-time feature computation
+│   ├── live_feed.py            ★ Built-in synthetic feed
+│   └── audit_service.py        Audit recording
+├── ml/model_service.py         Model loading, SHAP explanation, prediction
+├── utils/                      Error handlers, logging, rate limiting
+└── websocket/socket_server.py  Real-time event emission
+alembic/versions/               4 schema migrations
+tests/                          46 tests
+</code></pre>
+<p>★ = central to the live feed and scoring work</p>
+<h3 id="machine-learning-ml">Machine learning (<code>ml/</code>)</h3>
+<pre><code class="language-text">src/
+├── fraudpipe/
+│   ├── features.py             Feature construction
+│   ├── preprocess.py           Cleaning and imputation
+│   ├── split.py                Chronological time-aware splitting
+│   ├── experiments.py          Model comparison harness
+│   ├── metrics.py              PR-AUC, ROC-AUC, cost
+│   ├── tune.py                 Threshold and weight tuning on validation
+│   ├── risk_engine.py          ★ Hybrid 4-signal risk engine
+│   └── build_dataset.py        PaySim dataset construction
+├── train_live_model.py         Trains the deployed live-hybrid-v1 model
+├── decision_engine.py          Decision logic
+└── test_*.py                   49 tests
+models/
+├── live-v1/                    ★ Deployed artefacts
+│   ├── metadata.json           Version, metrics, feature list, tuned weights
+│   ├── preprocessor.json       Feature order + imputation medians
+│   ├── risk_config.json        Tuned weights and thresholds
+│   ├── supervised.joblib       XGBoost model
+│   └── isolation_forest.joblib Anomaly model
+└── experiments/paysim-v1/
+    └── experiment_results.json ★ Full 8-model benchmark
+</code></pre>
+<h3 id="frontend-frontend">Frontend (<code>frontend/</code>)</h3>
+<pre><code class="language-text">src/
+├── App.jsx, main.jsx           Application shell and routing
+├── pages/
+│   ├── Login.jsx
+│   ├── Dashboard.jsx           ★ Live KPIs, trends, corpus panel
+│   ├── Alerts.jsx
+│   ├── Cases.jsx
+│   ├── TransactionDetail.jsx
+│   ├── AuditLog.jsx            ★ Actor, target, detail, filters
+│   ├── Users.jsx
+│   └── Intelligence.jsx
+├── components/                 KpiCard, NavBar, ProtectedRoute, RiskBadge
+├── context/AuthContext.jsx     JWT + role state
+└── services/
+    ├── api.js                  Axios instance with auth interceptor
+    └── socket.js               WebSocket client
+</code></pre>
+<h3 id="other">Other</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scripts/simulator.py</code></td>
+<td>Standalone transaction generator (optional; the built-in feed supersedes it)</td>
+</tr>
+<tr>
+<td><code>docs/</code></td>
+<td>30+ supporting documents: architecture, security, testing, deployment, viva preparation</td>
+</tr>
+<tr>
+<td><code>ml/data/processed/paysim-v1/</code></td>
+<td>Dataset card, metadata, feature schema</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="appendix-b-one-page-quick-reference" class="page-break-before">Appendix B — One-Page Quick Reference</h2>
+<p><strong>The problem.</strong> Card fraud is rare (1 in 774) but arrives in patterns, and missing it is far more costly than
+over-flagging it. Batch scoring detects too late and remembers nothing.</p>
+<p><strong>The data.</strong> PaySim, 6,362,620 transactions, 8,213 fraud (0.1291%), 742 hours, zero missing values, zero
+duplicates, SHA-256 recorded for verification.</p>
+<p><strong>The leak prevention.</strong> Post-balance columns dropped (they encode the outcome), <code>isFlaggedFraud</code> dropped (it
+encodes the label), behavioural features strictly point-in-time, test set touched exactly once.</p>
+<p><strong>The models.</strong> 8 variants: logistic regression, random forest, XGBoost (each plain, class-weighted, and
+XGBoost + SMOTE), plus unsupervised Isolation Forest.</p>
+<p><strong>The winner.</strong> XGBoost + class weighting — <strong>PR-AUC 0.5203</strong>, ROC-AUC 0.9665, 7.2 ms inference.</p>
+<p><strong>The deployed system.</strong> 4 signals (ML 0.9, behaviour 0.1, anomaly 0.0, rules 0.0 as tuned) → 0–100 score →
+LOW/MEDIUM/HIGH/CRITICAL → ALLOW/REVIEW/BLOCK. 26 features, 7 deterministic rules, thresholds tuned on validation.</p>
+<p><strong>Why hybrid.</strong> The best classifier is only 0.52 PR-AUC. A single signal cannot be trusted; impossible-travel
+geometry catches takeover with no training data at all.</p>
+<p><strong>The engineering.</strong> 44 API operations · 14 tables · 8 pages · 95 tests (46 + 49) · 0 console errors · 0 feed
+errors · live count verified rising unattended.</p>
+<p><strong>The honesty.</strong> All data is public or synthetic. Users have at most 3 transactions, so behavioural features are
+weakly supported. Fraud exists in only 2 of 5 transaction types — a dataset artefact, not a real-world rule. At
+its best threshold the system misses about half of all fraud. The tuner gave the rule engine zero weight, and
+that is reported rather than hidden.</p>
+<p><strong>The disclaimer.</strong> An academic prototype. No real card data, ever. Public-dataset metrics do not establish
+production banking performance.</p>
+<hr />
+<p><em>End of report.</em></p>
+</body>
+</html>

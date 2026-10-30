@@ -1,0 +1,41 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Environment secrets
+.env
+!.env.example
+
+# ML data / large artifacts (dataset is regeneratable via ml/src/generate_dataset.py)
+ml/data/raw/*.csv
+!ml/data/raw/.gitkeep
+ml/data/processed/*.csv
+!ml/data/processed/.gitkeep
+
+# SQLite runtime state. The PaySim corpus DB is ~1.5 GB and is fully regeneratable
+# with: cd ml/src && python paysim_ingest.py
+backend/*.db
+backend/*.db-wal
+backend/*.db-shm
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log

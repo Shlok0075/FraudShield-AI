@@ -1,0 +1,56 @@
+# FraudShield AI - local Docker Compose fallback (PART 16, Week 15 Day 7)
+# Usage: docker compose up --build
+# Then open http://localhost:5173 (frontend) -- backend is at http://localhost:8000
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fraudshield
+    ports:
+      - "5432:5432"
+    volumes:
+      - fraudshield_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/fraudshield
+      JWT_SECRET: change-me-in-a-real-deployment
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: "60"
+      CORS_ORIGINS: http://localhost:5173
+      RATE_LIMIT_LOGIN: 10/minute
+      RATE_LIMIT_PREDICT: 60/minute
+      ML_MODELS_DIR: /ml/models
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  fraudshield_pgdata:

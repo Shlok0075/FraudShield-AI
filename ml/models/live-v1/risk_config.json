@@ -1,0 +1,37 @@
+{
+  "weights": {
+    "ml": 0.9,
+    "anomaly": 0.0,
+    "behavior": 0.1,
+    "rules": 0.0
+  },
+  "review_threshold": 5.0,
+  "block_threshold": 95.0,
+  "force_review_rules": [
+    "impossible_velocity"
+  ],
+  "behavior_min_history": 5,
+  "rules": {
+    "max_speed_kmh": 900.0,
+    "amount_ratio": 8.0,
+    "amount_zscore": 4.0,
+    "min_history": 5,
+    "burst_1m": 5,
+    "burst_1h": 15,
+    "card_test_count_5m": 3,
+    "card_test_max_ratio": 0.3,
+    "merchant_fraud_rate": 0.05,
+    "unusual_hour_ratio": 3.0,
+    "points": {
+      "impossible_velocity": 0.9,
+      "extreme_amount_deviation": 0.5,
+      "new_device_and_location_change": 0.6,
+      "card_testing": 0.6,
+      "transaction_burst": 0.5,
+      "suspicious_counterparty": 0.5,
+      "unusual_hour_high_amount": 0.3
+    }
+  },
+  "version": "risk-v1",
+  "provenance": "tuned on synthetic live-stream validation split (seed=42); replace/re-tune when using real data"
+}

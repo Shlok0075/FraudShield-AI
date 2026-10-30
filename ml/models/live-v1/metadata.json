@@ -1,0 +1,72 @@
+{
+  "version": "live-hybrid-v1",
+  "algorithm": "XGBoost + IsolationForest + behavior + rules",
+  "feature_version": "v1",
+  "feature_columns": [
+    "amount",
+    "log_amount",
+    "user_txn_count_prior",
+    "is_first_txn",
+    "amount_vs_user_avg",
+    "amount_zscore",
+    "txn_count_1m",
+    "txn_count_5m",
+    "txn_count_1h",
+    "txn_count_24h",
+    "amount_sum_1h",
+    "amount_sum_24h",
+    "time_since_last_txn_s",
+    "account_age_s",
+    "hour_of_day",
+    "day_of_week",
+    "is_weekend",
+    "unusual_hour",
+    "counterparty_txn_count_prior",
+    "user_fraud_rate_prior",
+    "counterparty_fraud_rate_prior",
+    "new_device",
+    "known_device_count",
+    "location_change",
+    "distance_from_prev_km",
+    "implied_speed_kmh"
+  ],
+  "dataset": "synthetic live behavioral stream",
+  "seed": 42,
+  "rows": 60000,
+  "split": {
+    "train": 36000,
+    "validation": 12000,
+    "test": 12000
+  },
+  "metrics": {
+    "pr_auc": 0.60377019821404,
+    "roc_auc": 0.9393452260275733,
+    "review": {
+      "precision": 0.18428571428571427,
+      "recall": 0.9148936170212766,
+      "f1": 0.30677764565992865,
+      "threshold": 0.05
+    },
+    "block": {
+      "precision": 0.9259259259259259,
+      "recall": 0.1773049645390071,
+      "f1": 0.2976190476190476,
+      "threshold": 0.95
+    },
+    "fraud_test": 141,
+    "test_rows": 12000
+  },
+  "scale_pos_weight": 77.09110629067246,
+  "weights": {
+    "ml": 0.9,
+    "anomaly": 0.0,
+    "behavior": 0.1,
+    "rules": 0.0
+  },
+  "review_threshold": 5.0,
+  "block_threshold": 95.0,
+  "anomaly_score_low": 0.3690991745693157,
+  "anomaly_score_high": 0.6960539092467408,
+  "trained_at": "2026-09-29T12:21:39.250267+00:00",
+  "disclaimer": "Academic prototype. Synthetic training data; not production banking performance."
+}

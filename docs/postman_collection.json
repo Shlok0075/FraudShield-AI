@@ -1,0 +1,140 @@
+{
+  "info": {
+    "name": "FraudShield AI",
+    "description": "PART 12.20 -- collection variable {{base_url}} and {{token}} (auto-set by the Login request's Tests script).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api/v1" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/register",
+            "body": { "mode": "raw", "raw": "{\"email\":\"admin@fraudshield.ai\",\"password\":\"StrongPass123!\",\"role\":\"admin\"}" }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.collectionVariables.set('token', pm.response.json().access_token);"] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\"email\":\"admin@fraudshield.ai\",\"password\":\"StrongPass123!\"}" }
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Predict",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/transactions/predict",
+            "body": { "mode": "raw", "raw": "{\"user_id\":1,\"amount\":25000,\"device_id\":\"dev-99\",\"location\":\"Mumbai\",\"payment_method\":\"card\"}" }
+          }
+        },
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/transactions?page=1&page_size=20"
+          }
+        },
+        {
+          "name": "Detail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/transactions/1/detail"
+          }
+        },
+        {
+          "name": "Action",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/transactions/1/action",
+            "body": { "mode": "raw", "raw": "{\"action\":\"mark_reviewed\"}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "List",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_url}}/alerts"
+          }
+        },
+        {
+          "name": "Update Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/alerts/1",
+            "body": { "mode": "raw", "raw": "{\"status\":\"resolved\"}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        { "name": "KPIs", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/dashboard/kpis" } },
+        { "name": "Trends", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/dashboard/trends?granularity=day" } },
+        { "name": "Risk Distribution", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/dashboard/risk-distribution" } },
+        { "name": "Geographic", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/dashboard/geographic" } },
+        { "name": "Model Info", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/dashboard/model-info" } }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        { "name": "Export CSV", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/reports/export?format=csv" } }
+      ]
+    },
+    {
+      "name": "Audit",
+      "item": [
+        { "name": "List (Admin only)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/audit?page=1" } }
+      ]
+    }
+  ]
+}

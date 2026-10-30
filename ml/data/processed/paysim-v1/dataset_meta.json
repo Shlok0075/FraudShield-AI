@@ -1,0 +1,85 @@
+{
+  "dataset": "PaySim",
+  "source_file": "PS_20174392719_1491204439457_log.csv",
+  "source_sha256": "16910f90577b0d981bf8ff289714510bb89bc71bff7d3f220f024e287e4eea6b",
+  "max_rows": null,
+  "is_full_benchmark": true,
+  "seed": 42,
+  "dropped_columns": [
+    "oldbalanceOrg",
+    "newbalanceOrig",
+    "oldbalanceDest",
+    "newbalanceDest",
+    "isFlaggedFraud"
+  ],
+  "label_delay_s": 86400.0,
+  "split": {
+    "method": "chronological on timestamp",
+    "train_frac": 0.6,
+    "val_frac": 0.2,
+    "train_end_ts": 1705078800,
+    "val_end_ts": 1705345200,
+    "stats": {
+      "train": {
+        "rows": 3792821,
+        "fraud": 3175,
+        "fraud_rate": 0.0008371077886354247
+      },
+      "val": {
+        "rows": 1276276,
+        "fraud": 780,
+        "fraud_rate": 0.0006111530734731359
+      },
+      "test": {
+        "rows": 1293523,
+        "fraud": 4258,
+        "fraud_rate": 0.003291785302619281
+      }
+    }
+  },
+  "profile": {
+    "rows": 6362620,
+    "fraud_rows": 8213,
+    "fraud_rate": 0.001290820448180152,
+    "missing_values": {
+      "ts": 0,
+      "user_id": 0,
+      "counterparty_id": 0,
+      "amount": 0,
+      "txn_type": 0,
+      "is_fraud": 0
+    },
+    "duplicate_rows": 0,
+    "unique_users": 6353307,
+    "share_users_with_more_than_1_txn": 0.0014634898014530072,
+    "max_txns_per_user": 3,
+    "unique_counterparties": 2722362,
+    "share_counterparties_with_more_than_1_txn": 0.16884528949493124,
+    "time_span_hours": 742.0,
+    "fraud_by_type": {
+      "CASH_IN": {
+        "rows": 1399284,
+        "fraud": 0
+      },
+      "CASH_OUT": {
+        "rows": 2237500,
+        "fraud": 4116
+      },
+      "DEBIT": {
+        "rows": 41432,
+        "fraud": 0
+      },
+      "PAYMENT": {
+        "rows": 2151495,
+        "fraud": 0
+      },
+      "TRANSFER": {
+        "rows": 532909,
+        "fraud": 4097
+      }
+    }
+  },
+  "built_at": "2026-09-29T13:28:51.218997+00:00",
+  "python": "3.13.14",
+  "pandas": "2.3.3"
+}

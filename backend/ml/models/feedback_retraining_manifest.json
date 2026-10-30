@@ -1,0 +1,13 @@
+{
+  "generated_by": "admin@fraudshield.ai",
+  "records": 2,
+  "labels": {
+    "confirmed_fraud": 0,
+    "false_positive": 2,
+    "unresolved": 0
+  },
+  "feedback_ids": [
+    1,
+    2
+  ]
+}
