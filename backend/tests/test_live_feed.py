@@ -172,16 +172,16 @@ def test_trends_report_live_scope_and_corpus_trends_are_separate(client, admin_t
 # 3. Audit trail
 # --------------------------------------------------------------------------
 
-def test_successful_login_is_audited_with_actor_and_target(client):
+def test_successful_login_is_audited_with_actor_and_target(client, admin_token):
     client.post("/api/v1/auth/register", json={
-        "email": "auditor@fraudshield.ai", "password": "StrongPass123!", "role": "admin"})
+        "email": "auditor@fraudshield.ai", "password": "StrongPass123!"})
     client.post("/api/v1/auth/login", json={
         "email": "auditor@fraudshield.ai", "password": "StrongPass123!"})
 
     token = client.post("/api/v1/auth/login", json={
         "email": "auditor@fraudshield.ai", "password": "StrongPass123!"}).json()["access_token"]
 
-    audit = client.get("/api/v1/audit", headers={"Authorization": f"Bearer {token}"}).json()
+    audit = client.get("/api/v1/audit", headers={"Authorization": f"Bearer {admin_token}"}).json()
     logins = [r for r in audit["items"] if r["action"] == "auth.login"]
 
     assert logins, "successful logins must be audited"
@@ -191,9 +191,9 @@ def test_successful_login_is_audited_with_actor_and_target(client):
     assert "role" in row["detail"]
 
 
-def test_failed_logins_are_audited_for_both_failure_modes(client):
+def test_failed_logins_are_audited_for_both_failure_modes(client, admin_token):
     client.post("/api/v1/auth/register", json={
-        "email": "target@fraudshield.ai", "password": "StrongPass123!", "role": "admin"})
+        "email": "target@fraudshield.ai", "password": "StrongPass123!"})
     token = client.post("/api/v1/auth/login", json={
         "email": "target@fraudshield.ai", "password": "StrongPass123!"}).json()["access_token"]
 
@@ -204,7 +204,7 @@ def test_failed_logins_are_audited_for_both_failure_modes(client):
     client.post("/api/v1/auth/login", json={
         "email": "ghost@fraudshield.ai", "password": "StrongPass123!"})
 
-    audit = client.get("/api/v1/audit", headers={"Authorization": f"Bearer {token}"}).json()
+    audit = client.get("/api/v1/audit", headers={"Authorization": f"Bearer {admin_token}"}).json()
     failures = [r for r in audit["items"] if r["action"] == "auth.login_failed"]
     details = " | ".join(r["detail"] or "" for r in failures)
 
