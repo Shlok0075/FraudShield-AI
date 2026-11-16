@@ -10,13 +10,16 @@
 
 ## Decision
 
-**Primary dataset: Credit Card Fraud Detection schema (`Time`, `V1`–`V28`, `Amount`, `Class`)**, generated
-synthetically by `ml/src/generate_dataset.py` to match the real ULB dataset's exact schema, size class and
-imbalance ratio (~0.17% fraud). The original Kaggle CSV requires a Kaggle account/API token and cannot be
-redistributed inside this handbook's project zip, so a schema-identical synthetic generator stands in for it —
-**anyone with Kaggle access can instead drop the real `creditcard.csv` into `ml/data/raw/` and every downstream
-script (`preprocessing.py`, `train.py`, the notebooks) works unchanged**, since only the file's contents differ,
-not its shape.
+**Primary training dataset for the live model: PaySim**
+(`PS_20174392719_1491204439457_log.csv`, Lopez-Rojas et al., Kaggle 'ealaxi/paysim1'), 6,362,620 rows,
+8,213 fraud (0.1291%). The live hybrid model (`ml/models/live-v1/`) is trained on PaySim point-in-time
+features (`ml/data/processed/paysim-v1/`), with XGBoost + IsolationForest + behavior + rules combined
+through a validation-tuned risk engine.
+
+The Credit Card Fraud Detection schema (`Time`, `V1`–`V28`, `Amount`, `Class`) is maintained as a
+**legacy/offline benchmark** (`ml/data/raw/creditcard.csv`, 120,000 rows, 204 fraud, 0.17%) generated
+synthetically by `ml/src/generate_dataset.py`. The legacy model (`ml/models/model.joblib`) remains
+available but is not the active serving model.
 
 This is combined, in Month 3, with our **own synthetic transaction simulator** (`scripts/simulator.py`) that
 generates human-readable, richly engineered features (velocity, device change, location change) for the live
@@ -29,6 +32,9 @@ used to demonstrate the ML → API → real-time dashboard pipeline end-to-end, 
 
 ## Where the data lives
 
-- `ml/src/generate_dataset.py` — generator (documented, deterministic via `random_state=42`)
-- `ml/data/raw/creditcard.csv` — generated dataset (120,000 rows, 204 fraud, 0.17%)
-- `ml/data/processed/{train,test}.csv` — post-split, post-scaling artifacts (written by `preprocessing.py`)
+- `ml/src/generate_dataset.py` — legacy credit-card generator (deterministic via `random_state=42`)
+- `ml/data/raw/creditcard.csv` — legacy generated dataset (120,000 rows, 204 fraud, 0.17%)
+- `ml/data/raw/PS_20174392719_1491204439457_log.csv` — PaySim raw (6,362,620 rows; 493 MB, not shipped)
+- `ml/data/processed/paysim-v1/` — PaySim point-in-time features, train/val/test split
+- `ml/models/live-v1/` — active serving model trained on PaySim 6M
+- `ml/models/model.joblib` — legacy credit-card model (not active)

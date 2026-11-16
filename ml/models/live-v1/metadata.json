@@ -28,45 +28,50 @@
     "known_device_count",
     "location_change",
     "distance_from_prev_km",
-    "implied_speed_kmh"
+    "implied_speed_kmh",
+    "txn_type=CASH_IN",
+    "txn_type=CASH_OUT",
+    "txn_type=DEBIT",
+    "txn_type=PAYMENT",
+    "txn_type=TRANSFER"
   ],
-  "dataset": "synthetic live behavioral stream",
+  "dataset": "PaySim 6M (PS_20174392719_1491204439457_log.csv)",
   "seed": 42,
-  "rows": 60000,
+  "rows": 6362620,
   "split": {
-    "train": 36000,
-    "validation": 12000,
-    "test": 12000
+    "train": 3792821,
+    "validation": 1276276,
+    "test": 1293523
   },
   "metrics": {
-    "pr_auc": 0.60377019821404,
-    "roc_auc": 0.9393452260275733,
+    "pr_auc": 0.32552723108807874,
+    "roc_auc": 0.8914988280113145,
     "review": {
-      "precision": 0.18428571428571427,
-      "recall": 0.9148936170212766,
-      "f1": 0.30677764565992865,
+      "precision": 0.004486631333437384,
+      "recall": 0.9586660403945514,
+      "f1": 0.008931462729413,
       "threshold": 0.05
     },
     "block": {
-      "precision": 0.9259259259259259,
-      "recall": 0.1773049645390071,
-      "f1": 0.2976190476190476,
-      "threshold": 0.95
+      "precision": 0.935672514619883,
+      "recall": 0.0751526538280883,
+      "f1": 0.1391304347826087,
+      "threshold": 0.6
     },
-    "fraud_test": 141,
-    "test_rows": 12000
+    "fraud_test": 4258,
+    "test_rows": 1293523
   },
-  "scale_pos_weight": 77.09110629067246,
+  "scale_pos_weight": 1193.5892913385826,
   "weights": {
-    "ml": 0.9,
+    "ml": 0.6,
     "anomaly": 0.0,
-    "behavior": 0.1,
+    "behavior": 0.4,
     "rules": 0.0
   },
   "review_threshold": 5.0,
-  "block_threshold": 95.0,
-  "anomaly_score_low": 0.3690991745693157,
-  "anomaly_score_high": 0.6960539092467408,
-  "trained_at": "2026-09-29T12:21:39.250267+00:00",
-  "disclaimer": "Academic prototype. Synthetic training data; not production banking performance."
+  "block_threshold": 60.0,
+  "anomaly_score_low": 0.3710101068621043,
+  "anomaly_score_high": 0.6948192537217703,
+  "trained_at": "2026-11-16T12:04:20.048596+00:00",
+  "disclaimer": "Academic prototype. Trained on PaySim synthetic data; not production banking performance."
 }

@@ -21,6 +21,7 @@ class FraudPrediction(Base):
     anomaly_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     behavior_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     rule_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    graph_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     triggered_rules: Mapped[list | None] = mapped_column(JSON, nullable=True)
     reasons: Mapped[list | None] = mapped_column(JSON, nullable=True)
     signal_contributions: Mapped[dict | None] = mapped_column(JSON, nullable=True)

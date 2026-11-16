@@ -1,12 +1,12 @@
 {
   "weights": {
-    "ml": 0.9,
+    "ml": 0.6,
     "anomaly": 0.0,
-    "behavior": 0.1,
+    "behavior": 0.4,
     "rules": 0.0
   },
   "review_threshold": 5.0,
-  "block_threshold": 95.0,
+  "block_threshold": 60.0,
   "force_review_rules": [
     "impossible_velocity"
   ],
@@ -29,9 +29,16 @@
       "card_testing": 0.6,
       "transaction_burst": 0.5,
       "suspicious_counterparty": 0.5,
-      "unusual_hour_high_amount": 0.3
+      "unusual_hour_high_amount": 0.3,
+      "graph_fraud_ring": 0.8
     }
   },
   "version": "risk-v1",
-  "provenance": "tuned on synthetic live-stream validation split (seed=42); replace/re-tune when using real data"
+  "provenance": "tuned on PaySim 6M validation split (seed=42)",
+  "amount": 0.0,
+  "user_prior_txn_count": 0,
+  "merchant_fraud_rate": 0.0,
+  "hour_of_day": null,
+  "is_weekend": false,
+  "use_adaptive_thresholds": false
 }

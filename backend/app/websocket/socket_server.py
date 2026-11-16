@@ -29,6 +29,10 @@ async def emit_alert_updated(payload: dict) -> None:
     await sio.emit("alert_updated", payload)
 
 
+async def emit_investigation_complete(payload: dict) -> None:
+    await sio.emit("investigation_complete", payload)
+
+
 @sio.event
 async def connect(sid, environ):
     print(f"[socket.io] client connected: {sid}")

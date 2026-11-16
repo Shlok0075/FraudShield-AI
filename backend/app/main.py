@@ -18,7 +18,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config.settings import settings
 from app.database import Base, engine
 from app.ml.model_service import ModelService
-from app.routes import alerts, audit, auth, dashboard, reports, transactions, users, cases, profiles, merchants, feedback, monitoring, graph
+from app.routes import alerts, audit, auth, dashboard, investigation, reports, transactions, users, cases, profiles, merchants, feedback, monitoring, graph
 from app.models.model_version import ModelVersion
 from app.utils.error_handlers import (
     http_exception_handler,
@@ -167,6 +167,7 @@ app.include_router(merchants.router, prefix=settings.API_V1_PREFIX)
 app.include_router(feedback.router, prefix=settings.API_V1_PREFIX)
 app.include_router(monitoring.router, prefix=settings.API_V1_PREFIX)
 app.include_router(graph.router, prefix=settings.API_V1_PREFIX)
+app.include_router(investigation.router, prefix=settings.API_V1_PREFIX)
 
 # Mount the Socket.IO ASGI app so real-time events share the same server.
 app.mount("/socket.io", socket_app)

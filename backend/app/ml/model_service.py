@@ -19,7 +19,8 @@ _ML_SRC = Path(__file__).resolve().parents[3] / "ml" / "src"
 if str(_ML_SRC) not in sys.path:
     sys.path.insert(0, str(_ML_SRC))
 
-from fraudpipe.risk_engine import RiskConfig, score_transaction  # noqa: E402
+from fraudpipe.risk_engine import RiskConfig, score_transaction, _ok  # noqa: E402
+from fraudpipe.graph_engine import build_graph_features  # noqa: E402
 
 
 class ModelService:
@@ -87,8 +88,20 @@ class ModelService:
         anomalies = np.array([cls._anomaly_score(X[i:i + 1]) for i in range(len(X))])
         out = []
         for i, f in enumerate(features_batch):
+            graph_features = f.get("_graph_features", {})
+            graph_score = graph_features.get("graph_risk")
+
+            cfg = cls._config
+            cfg.amount = float(f.get("amount", 0.0))
+            cfg.user_prior_txn_count = int(f.get("user_txn_count_prior", 0))
+            cfg.merchant_fraud_rate = float(f.get("counterparty_fraud_rate_prior", 0.0))
+            cfg.hour_of_day = int(f.get("hour_of_day", 12)) if _ok(f.get("hour_of_day")) else None
+            cfg.is_weekend = bool(f.get("is_weekend", False))
+            cfg.use_adaptive_thresholds = True
+
             result = score_transaction(
-                f, ml_prob=float(ml_probs[i]), anomaly=float(anomalies[i]), cfg=cls._config)
+                f, ml_prob=float(ml_probs[i]), anomaly=float(anomalies[i]),
+                graph_score=graph_score, cfg=cfg)
             reasons = result.pop("reasons")
             out.append({
                 "probability": round(float(ml_probs[i]), 4),
@@ -99,6 +112,7 @@ class ModelService:
                 "anomaly_score": result.get("anomaly_score"),
                 "behavior_score": result.get("behavior_score"),
                 "rule_score": result.get("rule_score"),
+                "graph_score": result.get("graph_score"),
                 "triggered_rules": result.get("triggered_rules", []),
                 "reasons": reasons,
                 "signal_contributions": result.get("signal_contributions", {}),
@@ -169,7 +183,22 @@ class ModelService:
         X = cls._matrix(feature_dict)
         ml_prob = float(cls._model.predict_proba(X)[0, 1])
         anomaly = cls._anomaly_score(X)
-        result = score_transaction(feature_dict, ml_prob=ml_prob, anomaly=anomaly, cfg=cls._config)
+
+        # Graph-based fraud ring features
+        graph_features = feature_dict.get("_graph_features", {})
+        graph_score = graph_features.get("graph_risk")
+
+        # Build context for adaptive thresholds
+        cfg = cls._config
+        cfg.amount = float(feature_dict.get("amount", 0.0))
+        cfg.user_prior_txn_count = int(feature_dict.get("user_txn_count_prior", 0))
+        cfg.merchant_fraud_rate = float(feature_dict.get("counterparty_fraud_rate_prior", 0.0))
+        cfg.hour_of_day = int(feature_dict.get("hour_of_day", 12)) if _ok(feature_dict.get("hour_of_day")) else None
+        cfg.is_weekend = bool(feature_dict.get("is_weekend", False))
+        cfg.use_adaptive_thresholds = True
+
+        result = score_transaction(feature_dict, ml_prob=ml_prob, anomaly=anomaly,
+                                   graph_score=graph_score, cfg=cfg)
         reasons = result.pop("reasons")
         explanation = cls._explain(X)
         explanation.extend({"feature": "rule", "label": r["description"], "impact": r["points"], "direction": "increases_risk"}

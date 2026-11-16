@@ -3,7 +3,7 @@ FraudShield AI - Single source of truth for the fraud-scoring pipeline.
 =======================================================================
 `ingest_transaction` is the whole "score a transaction and act on it" flow:
 build features -> predict -> persist transaction/prediction -> create alert
-and case -> emit WebSocket events.
+and case -> auto-investigate -> emit WebSocket events.
 
 It lives here rather than inline in `routes/transactions.py` so that the
 built-in live feed (`services/live_feed.py`) and the HTTP endpoint drive
@@ -23,7 +23,9 @@ from app.models.fraud_prediction import FraudPrediction
 from app.models.case import FraudCase
 from app.models.transaction import Transaction
 from app.services.feature_engineering import build_features
+from app.services.investigation_service import run_investigation
 from app.websocket.socket_server import emit_new_alert, emit_new_transaction
+from fraudpipe.graph_engine import build_graph_features, record_transaction
 
 # Human-facing labels kept for API compatibility, alongside the normalized
 # ALLOW/REVIEW/BLOCK decision the pipeline actually makes.
@@ -49,10 +51,14 @@ async def ingest_transaction(
     # FeatureEngine correctly identify a genuinely new device.
     features = build_features(db, payload)
 
-    # 2. ML + anomaly + behavioral + deterministic-rule risk scoring.
+    # 2. Build graph-based fraud ring features from live graph.
+    graph_features = build_graph_features(db, payload)
+    features["_graph_features"] = graph_features
+
+    # 3. ML + anomaly + behavior + rules + graph risk scoring.
     result = ModelService.predict(features)
 
-    # 3. Register the device only AFTER feature computation.
+    # 4. Register the device only AFTER feature computation.
     device = db.execute(
         select(Device).where(Device.user_id == payload["user_id"],
                              Device.device_id == payload["device_id"])
@@ -64,7 +70,7 @@ async def ingest_transaction(
         db.commit()
         db.refresh(device)
 
-    # 4. Persist the transaction.
+    # 5. Persist the transaction.
     txn = Transaction(
         user_id=payload["user_id"],
         merchant_id=payload.get("merchant_id"),
@@ -80,7 +86,14 @@ async def ingest_transaction(
     db.commit()
     db.refresh(txn)
 
-    # 5. Persist the prediction and hybrid signal details.
+    # 6. Record transaction into live graph for future fraud-ring scoring.
+    ts = (txn.created_at or datetime.now(timezone.utc)).timestamp()
+    record_transaction(db, txn, device, str(payload["user_id"]),
+                       str(payload.get("device_id") or "unknown"),
+                       str(payload.get("merchant_id") or "unknown"),
+                       ts=ts)
+
+    # 7. Persist the prediction and hybrid signal details.
     prediction = FraudPrediction(
         transaction_id=txn.id,
         probability=result["probability"],
@@ -91,6 +104,7 @@ async def ingest_transaction(
         anomaly_score=result.get("anomaly_score"),
         behavior_score=result.get("behavior_score"),
         rule_score=result.get("rule_score"),
+        graph_score=result.get("graph_score"),
         triggered_rules=result.get("triggered_rules", []),
         reasons=result.get("reasons", []),
         signal_contributions=result.get("signal_contributions", {}),
@@ -99,7 +113,7 @@ async def ingest_transaction(
     db.add(prediction)
     db.commit()
 
-    # 6. Create an alert for REVIEW/BLOCK, plus an investigation case.
+    # 8. Create an alert for REVIEW/BLOCK, plus an investigation case.
     alert = None
     if result["create_alert"]:
         alert = FraudAlert(
@@ -121,7 +135,23 @@ async def ingest_transaction(
             db.add(case)
             db.commit()
 
-    # 7. Emit WebSocket events so the dashboard updates instantly.
+    # 9. Auto-investigate REVIEW/BLOCK alerts (investigation engine runs synchronously).
+    investigation = None
+    if result["create_alert"] and result["decision"] in ("REVIEW", "BLOCK"):
+        try:
+            investigation = run_investigation(db, alert.id, emit=True)
+            result["investigation"] = {
+                "decision": investigation["decision"],
+                "confidence": investigation["confidence"],
+                "risk_level": investigation["risk_level"],
+                "summary": investigation["summary"],
+                "case_id": investigation["case_id"],
+            }
+        except Exception:
+            # Investigation failure must not block the transaction response
+            result["investigation"] = None
+
+    # 10. Emit WebSocket events so the dashboard updates instantly.
     txn_payload = {
         "transaction_id": txn.id, "user_id": txn.user_id, "amount": float(txn.amount),
         "risk_level": result["risk_level"], "risk_score": result["risk_score"],
@@ -145,11 +175,13 @@ async def ingest_transaction(
         "anomaly_score": result.get("anomaly_score"),
         "behavior_score": result.get("behavior_score"),
         "rule_score": result.get("rule_score"),
+        "graph_score": result.get("graph_score"),
         "triggered_rules": result.get("triggered_rules", []),
         "reasons": result.get("reasons", []),
         "signal_contributions": result.get("signal_contributions", {}),
         "weights_used": result.get("weights_used", {}),
         "model_version": result.get("model_version"),
         "explanation": result["explanation"],
+        "investigation": investigation,
         "alert_id": alert.id if alert is not None else None,
     }

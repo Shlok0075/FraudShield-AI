@@ -34,12 +34,15 @@ class PredictionResponse(BaseModel):
     anomaly_score: float | None = None
     behavior_score: float | None = None
     rule_score: float | None = None
+    graph_score: float | None = None
     triggered_rules: list[dict] = []
     reasons: list[str] = []
     signal_contributions: dict[str, float] = {}
     weights_used: dict[str, float] = {}
     model_version: str | None = None
     explanation: list[ExplanationItem]
+    alert_id: int | None = None
+    investigation: dict | None = None
 
 
 class TransactionOut(BaseModel):

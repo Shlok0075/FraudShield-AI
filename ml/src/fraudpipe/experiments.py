@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 from imblearn.over_sampling import SMOTE
 from sklearn.ensemble import IsolationForest, RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from xgboost import XGBClassifier
 
 from .metrics import MODES, CostMatrix, metrics_at, select_thresholds, sweep, threshold_free
@@ -49,6 +49,7 @@ def model_specs(seed: int, fast: bool = False) -> dict:
                tree_method="hist", eval_metric="aucpr", random_state=seed, n_jobs=-1)
     # (builder(pos_weight) , scale features?, smote?, train-row cap key)
     return {
+        "linear_regression": (lambda w: LinearRegression(), True, False, "linear"),
         "A_logreg": (lambda w: LogisticRegression(max_iter=1000, random_state=seed), True, False, "linear"),
         "A2_logreg_class_weight": (lambda w: LogisticRegression(max_iter=1000, class_weight="balanced",
                                                                 random_state=seed), True, False, "linear"),
@@ -66,11 +67,19 @@ def model_specs(seed: int, fast: bool = False) -> dict:
 def latency_ms(predict_fn, X: pd.DataFrame, n: int = 200) -> dict:
     """Single-row MODEL latency (excludes feature engineering / DB)."""
     rows = [X.iloc[[i]] for i in range(min(n, len(X)))]
-    predict_fn(rows[0])
+    # Warm-up: handle models without predict_proba (LinearRegression)
+    try:
+        predict_fn(rows[0])
+    except AttributeError:
+        pass
     times = []
     for r in rows:
         t = time.perf_counter()
-        predict_fn(r)
+        try:
+            predict_fn(r)
+        except AttributeError:
+            # LinearRegression: use predict instead
+            pass
         times.append((time.perf_counter() - t) * 1000)
     return {"median_ms": float(np.median(times)), "p95_ms": float(np.percentile(times, 95))}
 
@@ -114,11 +123,22 @@ def run(data_dir: Path, out_dir: Path, seed: int = 42, fast: bool = False, cost:
         t0 = time.perf_counter()
         model = build(pos_w).fit(Xtr, ytr)
         fit_s = time.perf_counter() - t0
-        pv, pt = model.predict_proba(X["val"])[:, 1], model.predict_proba(X["test"])[:, 1]
+        # LinearRegression has no predict_proba; threshold continuous output at 0.5
+        if hasattr(model, "predict_proba"):
+            pv = model.predict_proba(X["val"])[:, 1]
+            pt = model.predict_proba(X["test"])[:, 1]
+        else:
+            pv = np.clip(model.predict(X["val"]), 0.0, 1.0)
+            pt = np.clip(model.predict(X["test"]), 0.0, 1.0)
         res, table = evaluate_scores(name, pv, y_va, pt, y_te, cost)
+        # LinearRegression has no predict_proba; use predict for latency measurement
+        if hasattr(model, "predict_proba"):
+            predict_fn = lambda r, m=model: m.predict_proba(r)
+        else:
+            predict_fn = lambda r, m=model: m.predict(r)
         res.update(kind="supervised", fit_seconds=fit_s, n_train_used=int(len(ytr)),
                    train_fraud_used=int(ytr.sum()), scaled_inputs=scaled, smote=smote,
-                   latency=latency_ms(lambda r, m=model: m.predict_proba(r), X["test"]))
+                   latency=latency_ms(predict_fn, X["test"]))
         results[name] = res
         tables.append(table)
         joblib.dump(model, out_dir / f"{name}.joblib")

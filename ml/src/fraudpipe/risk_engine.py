@@ -1,10 +1,10 @@
 """
-Hybrid fraud risk engine: supervised ML + anomaly + behavioral + deterministic rules -> 0-100 score,
+Hybrid fraud risk engine: supervised ML + anomaly + behavioral + deterministic rules + graph -> 0-100 score,
 risk level, ALLOW/REVIEW/BLOCK decision and human-readable reasons.
 
     FinalRisk = 100 * sum(w_i * s_i) / sum(w_i)      over the signals that are AVAILABLE for this transaction
 
-Signals ml / anomaly / behavior / rules are each in [0, 1]. A missing signal (e.g. no anomaly model loaded, or a
+Signals ml / anomaly / behavior / rules / graph are each in [0, 1]. A missing signal (e.g. no anomaly model loaded, or a
 feature that is NaN) is left out and the remaining weights are renormalised - never silently treated as 0.
 
 Weights and thresholds live in RiskConfig (JSON-serialisable). They are NOT hand-picked: see tune.py, which
@@ -17,7 +17,7 @@ import math
 from dataclasses import asdict, dataclass, field
 
 CONFIG_VERSION = "risk-v1"
-SIGNALS = ("ml", "anomaly", "behavior", "rules")
+SIGNALS = ("ml", "anomaly", "behavior", "rules", "graph")
 LEVELS = {"LOW": (0, 29), "MEDIUM": (30, 59), "HIGH": (60, 79), "CRITICAL": (80, 100)}
 
 
@@ -37,12 +37,12 @@ class RuleConfig:
     points: dict = field(default_factory=lambda: {
         "impossible_velocity": 0.9, "extreme_amount_deviation": 0.5, "new_device_and_location_change": 0.6,
         "card_testing": 0.6, "transaction_burst": 0.5, "suspicious_counterparty": 0.5,
-        "unusual_hour_high_amount": 0.3})
+        "unusual_hour_high_amount": 0.3, "graph_fraud_ring": 0.8})
 
 
 @dataclass
 class RiskConfig:
-    weights: dict = field(default_factory=lambda: {"ml": 0.5, "anomaly": 0.15, "behavior": 0.2, "rules": 0.15})
+    weights: dict = field(default_factory=lambda: {"ml": 0.5, "anomaly": 0.10, "behavior": 0.15, "rules": 0.15, "graph": 0.10})
     review_threshold: float = 40.0       # score >= -> REVIEW
     block_threshold: float = 80.0        # score >= -> BLOCK
     force_review_rules: tuple = ("impossible_velocity",)
@@ -50,6 +50,13 @@ class RiskConfig:
     rules: RuleConfig = field(default_factory=RuleConfig)
     version: str = CONFIG_VERSION
     provenance: str = "default (UNTUNED) - run fraudpipe.tune to select weights on validation data"
+    # Adaptive threshold context (set at scoring time if context-aware decisions are wanted)
+    amount: float = 0.0
+    user_prior_txn_count: int = 0
+    merchant_fraud_rate: float = 0.0
+    hour_of_day: int | None = None
+    is_weekend: bool = False
+    use_adaptive_thresholds: bool = False
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), indent=2)
@@ -60,7 +67,6 @@ class RiskConfig:
         d["rules"] = RuleConfig(**d["rules"])
         d["force_review_rules"] = tuple(d.get("force_review_rules", ()))
         return cls(**d)
-
     def validate(self) -> None:
         if set(self.weights) - set(SIGNALS) or any(w < 0 for w in self.weights.values()):
             raise ValueError("weights must be >= 0 and keyed by " + ", ".join(SIGNALS))
@@ -106,6 +112,10 @@ def evaluate_rules(f: dict, rc: RuleConfig) -> list[dict]:
     if f.get("unusual_hour") == 1 and _ok(f.get("amount_vs_user_avg")) and n >= 1 \
             and f["amount_vs_user_avg"] >= rc.unusual_hour_ratio:
         add("unusual_hour_high_amount", "High amount at an unusual hour")
+    # Graph signal: graph risk score above threshold indicates fraud ring exposure
+    if _ok(f.get("graph_risk")) and f["graph_risk"] >= 0.5:
+        add("graph_fraud_ring",
+            f"Graph fraud-ring exposure detected (risk {f['graph_risk']:.0%}) — shared device/merchant/counterparty with known fraud accounts")
     return hit
 
 
@@ -183,19 +193,50 @@ def reasons(f: dict, triggered: list[dict]) -> list[str]:
 
 
 def score_transaction(features: dict, ml_prob: float | None, anomaly: float | None = None,
+                      graph_score: float | None = None,
                       cfg: RiskConfig | None = None) -> dict:
     cfg = cfg or RiskConfig()
     cfg.validate()
     hit = evaluate_rules(features, cfg.rules)
     sig = {"ml": ml_prob, "anomaly": anomaly, "behavior": behavior_score(features, cfg.behavior_min_history),
-           "rules": rule_score(hit)}
+           "rules": rule_score(hit), "graph": graph_score}
     score, contrib = aggregate(sig, cfg.weights)
+
+    # Adaptive thresholds: if context provided, override static thresholds
+    review_threshold = cfg.review_threshold
+    block_threshold = cfg.block_threshold
+    if cfg.use_adaptive_thresholds:
+        try:
+            from fraudpipe.adaptive_threshold import get_adaptive_engine
+            adj = get_adaptive_engine().compute(
+                amount=cfg.amount,
+                user_prior_txn_count=cfg.user_prior_txn_count,
+                merchant_fraud_rate=cfg.merchant_fraud_rate,
+                hour_of_day=cfg.hour_of_day,
+                is_weekend=cfg.is_weekend,
+                base_review=cfg.review_threshold,
+                base_block=cfg.block_threshold,
+            )
+            review_threshold = adj["review"]
+            block_threshold = adj["block"]
+        except ImportError:
+            pass  # fall back to static thresholds
+
     return {
         "final_risk_score": round(score, 1), "risk_score": int(round(score)), "risk_level": risk_level(score),
-        "decision": decide(score, cfg, hit),
+        "decision": decide(score, RiskConfig(
+            weights=cfg.weights, review_threshold=review_threshold, block_threshold=block_threshold,
+            force_review_rules=cfg.force_review_rules, behavior_min_history=cfg.behavior_min_history,
+            rules=cfg.rules, version=cfg.version, provenance=cfg.provenance,
+            amount=cfg.amount, user_prior_txn_count=cfg.user_prior_txn_count,
+            merchant_fraud_rate=cfg.merchant_fraud_rate, hour_of_day=cfg.hour_of_day,
+            is_weekend=cfg.is_weekend, use_adaptive_thresholds=cfg.use_adaptive_thresholds,
+        ), hit),
         "ml_score": ml_prob, "anomaly_score": anomaly,
-        "behavior_score": sig["behavior"], "rule_score": sig["rules"],
+        "behavior_score": sig["behavior"], "rule_score": sig["rules"], "graph_score": graph_score,
         "triggered_rules": hit, "reasons": reasons(features, hit),
         "signal_contributions": {k: round(v, 2) for k, v in contrib.items()},
         "weights_used": {k: cfg.weights[k] for k in contrib}, "config_version": cfg.version,
+        "review_threshold": review_threshold, "block_threshold": block_threshold,
+        "adaptive_thresholds": cfg.use_adaptive_thresholds,
     }

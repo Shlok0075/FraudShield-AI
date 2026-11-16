@@ -109,9 +109,11 @@ cd ml/src && pytest test_ml.py                                            # 18 t
 
 ## Model performance (real numbers, this repo)
 
-Final model: **XGBoost, class_weight='balanced'** — Precision **0.7647**, Recall **0.3171**, F1 **0.4483**,
-ROC-AUC **0.9139**, PR-AUC **0.4324** on a held-out test set. Full 6-variant comparison (3 algorithms × 2
-imbalance strategies) in `docs/model_selection.md` and `ml/models/model_comparison.csv`.
+Final model: **XGBoost + IsolationForest + behavior + rules (live-hybrid-v1)** — trained on PaySim 6M
+(PS_20174392719_1491204439457_log.csv, 6,362,620 rows, 8,213 fraud). Test metrics on held-out 1,293,523-row split:
+PR-AUC **0.3255**, ROC-AUC **0.8915**, Block precision **0.9357** at recall **0.0752**, Review recall **0.9587** at precision **0.0045**.
+Hybrid weights: ml=0.60, behavior=0.40. Review threshold 5.0, block threshold 60.0.
+Full experiment results in `ml/models/live-v1/metadata.json` and `ml/data/processed/paysim-v1/`.
 
 ## Documentation index (`docs/`)
 

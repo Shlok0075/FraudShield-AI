@@ -1,14 +1,13 @@
 """
 FraudShield AI - Model Training & Comparison (PART 6 Week 4, PART 7 Week 5)
-=============================================================================
-Trains 3 algorithms (Logistic Regression, Random Forest, XGBoost) under
-2 imbalance strategies (class_weight='balanced' and SMOTE), evaluates all
-6 variants on Precision/Recall/F1/ROC-AUC/PR-AUC + confusion matrix, and
-saves:
+===========================================================================
+Trains 4 algorithms (Linear Regression, Logistic Regression, Random Forest, XGBoost) under
+2 imbalance strategies (class_weight='balanced' and SMOTE), evaluates all 8 variants on
+Precision/Recall/F1/ROC-AUC/PR-AUC + confusion matrix, and saves:
   - ml/models/model.joblib          (best performing pipeline)
   - ml/models/scaler.joblib         (already saved by preprocessing.py)
   - ml/models/metadata.json         (version, training date, metrics, features)
-  - ml/models/model_comparison.csv  (the 6-variant comparison table, PART 10.10)
+  - ml/models/model_comparison.csv  (the 8-variant comparison table, PART 10.10)
 
 Run:  python ml/src/train.py
 """
@@ -23,8 +22,9 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import (
+    accuracy_score,
     average_precision_score,
     confusion_matrix,
     f1_score,
@@ -59,6 +59,7 @@ def metrics_for(y_true, y_pred, y_proba) -> dict:
 
 def build_models(scale_pos_weight: float) -> dict:
     return {
+        "LinearRegression": LinearRegression(),
         "LogisticRegression": LogisticRegression(
             class_weight="balanced", max_iter=1000, random_state=RANDOM_STATE
         ),
@@ -85,41 +86,52 @@ def main():
     data = run_preprocessing_pipeline(RAW_CSV)
     X_train, X_test = data["X_train"], data["X_test"]
     y_train, y_test = data["y_train"], data["y_test"]
+    X_val, y_val = data.get("X_val"), data.get("y_val")
 
     scale_pos_weight = (y_train == 0).sum() / max(1, (y_train == 1).sum())
 
     results = []
     trained_models = {}
 
+    def _score(model, X, y):
+        if hasattr(model, "predict_proba"):
+            proba = model.predict_proba(X)[:, 1]
+        else:
+            cont = model.predict(X)
+            proba = np.clip(cont, 0.0, 1.0)
+        pred = (proba >= 0.5).astype(int)
+        return metrics_for(y, pred, proba)
+
     # ---- Strategy A: class_weight='balanced' (train directly) ----
     for name, model in build_models(scale_pos_weight).items():
         model.fit(X_train, y_train)
-        proba = model.predict_proba(X_test)[:, 1]
-        pred = (proba >= 0.5).astype(int)
-        m = metrics_for(y_test, pred, proba)
-        m.update({"model": name, "imbalance_strategy": "class_weight"})
-        results.append(m)
+        m_val = _score(model, X_val, y_val)
+        m_test = _score(model, X_test, y_test)
+        m_test.update({"model": name, "imbalance_strategy": "class_weight",
+                       "val_pr_auc": m_val["pr_auc"], "val_roc_auc": m_val["roc_auc"]})
+        results.append(m_test)
         trained_models[f"{name}_class_weight"] = model
-        print(f"[class_weight] {name:<20} PR-AUC={m['pr_auc']:.4f} "
-              f"ROC-AUC={m['roc_auc']:.4f} F1={m['f1']:.4f}")
+        print(f"[class_weight] {name:<20} val_PR-AUC={m_val['pr_auc']:.4f} "
+              f"test_PR-AUC={m_test['pr_auc']:.4f} "
+              f"test_ROC-AUC={m_test['roc_auc']:.4f} test_F1={m_test['f1']:.4f}")
 
     # ---- Strategy B: SMOTE (fit on train fold only, never on test) ----
     X_train_sm, y_train_sm = apply_smote(X_train, y_train, RANDOM_STATE)
     for name, model in build_models(scale_pos_weight=1.0).items():
         model.fit(X_train_sm, y_train_sm)
-        proba = model.predict_proba(X_test)[:, 1]
-        pred = (proba >= 0.5).astype(int)
-        m = metrics_for(y_test, pred, proba)
-        m.update({"model": name, "imbalance_strategy": "SMOTE"})
-        results.append(m)
+        m_val = _score(model, X_val, y_val)
+        m_test = _score(model, X_test, y_test)
+        m_test.update({"model": name, "imbalance_strategy": "SMOTE",
+                       "val_pr_auc": m_val["pr_auc"], "val_roc_auc": m_val["roc_auc"]})
+        results.append(m_test)
         trained_models[f"{name}_SMOTE"] = model
-        print(f"[SMOTE]        {name:<20} PR-AUC={m['pr_auc']:.4f} "
-              f"ROC-AUC={m['roc_auc']:.4f} F1={m['f1']:.4f}")
+        print(f"[SMOTE]        {name:<20} val_PR-AUC={m_val['pr_auc']:.4f} "
+              f"test_PR-AUC={m_test['pr_auc']:.4f} "
+              f"test_ROC-AUC={m_test['roc_auc']:.4f} test_F1={m_test['f1']:.4f}")
 
-    comparison_df = pd.DataFrame(results)[
-        ["model", "imbalance_strategy", "precision", "recall", "f1",
-         "roc_auc", "pr_auc", "tp", "fp", "tn", "fn"]
-    ]
+    comparison_cols = ["model", "imbalance_strategy", "val_pr_auc", "val_roc_auc",
+                       "precision", "recall", "f1", "roc_auc", "pr_auc", "tp", "fp", "tn", "fn"]
+    comparison_df = pd.DataFrame(results)[comparison_cols]
     comparison_df.to_csv(MODELS_DIR / "model_comparison.csv", index=False)
     print("\nComparison table saved -> ml/models/model_comparison.csv")
     print(comparison_df.to_string(index=False))
@@ -134,11 +146,14 @@ def main():
         cv_X, cv_y = X_train_sm, y_train_sm
     else:
         cv_X, cv_y = X_train, y_train
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
-    cv_scores = cross_val_score(best_model, cv_X, cv_y, cv=skf, scoring="average_precision")
-
-    print(f"\nBEST MODEL: {best_key}  "
-          f"(PR-AUC={best_row['pr_auc']:.4f}, 5-fold CV PR-AUC mean={cv_scores.mean():.4f})")
+    # Skip CV for LinearRegression (baseline only, not a classifier)
+    if best_row["model"] != "LinearRegression":
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
+        cv_scores = cross_val_score(best_model, cv_X, cv_y, cv=skf, scoring="average_precision")
+        cv_note = f"(PR-AUC={best_row['pr_auc']:.4f}, 5-fold CV PR-AUC mean={cv_scores.mean():.4f})"
+    else:
+        cv_scores = None
+        cv_note = f"(PR-AUC={best_row['pr_auc']:.4f}, baseline -- CV skipped)"
 
     joblib.dump(best_model, MODELS_DIR / "model.joblib")
 
@@ -154,7 +169,7 @@ def main():
             "f1": best_row["f1"],
             "roc_auc": best_row["roc_auc"],
             "pr_auc": best_row["pr_auc"],
-            "cv_pr_auc_mean": round(float(cv_scores.mean()), 4),
+            "cv_pr_auc_mean": round(float(cv_scores.mean()), 4) if cv_scores is not None else None,
         },
         "risk_thresholds": {"LOW": [0, 29], "MEDIUM": [30, 59], "HIGH": [60, 79], "CRITICAL": [80, 100]},
         "dataset": "synthetic (creditcard-schema, ~0.17% fraud) -- see docs/dataset_choice.md",
