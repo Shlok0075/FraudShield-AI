@@ -25,7 +25,7 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"error": {"code": "EMAIL_EXISTS", "message": "Email already registered"}},
         )
-    user = User(email=payload.email, password_hash=hash_password(payload.password), role=payload.role)
+    user = User(email=payload.email, password_hash=hash_password(payload.password), role="user")
     db.add(user)
     db.commit()
     db.refresh(user)

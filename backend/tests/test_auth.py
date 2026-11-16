@@ -21,16 +21,35 @@ def test_create_and_decode_access_token():
 
 def test_register_and_login_flow(client):
     resp = client.post("/api/v1/auth/register", json={
-        "email": "newuser@fraudshield.ai", "password": "StrongPass123!", "role": "analyst",
+        "email": "newuser@fraudshield.ai", "password": "StrongPass123!",
     })
     assert resp.status_code == 201
-    assert resp.json()["role"] == "analyst"
+    # Public registration always creates a normal user role
+    assert resp.json()["role"] == "user"
 
     login_resp = client.post("/api/v1/auth/login", json={
         "email": "newuser@fraudshield.ai", "password": "StrongPass123!",
     })
     assert login_resp.status_code == 200
     assert "access_token" in login_resp.json()
+
+
+def test_public_register_with_admin_role_creates_user(client):
+    """Client-supplied role must be ignored during public registration."""
+    resp = client.post("/api/v1/auth/register", json={
+        "email": "attacker@fraudshield.ai", "password": "StrongPass123!", "role": "admin",
+    })
+    assert resp.status_code == 201
+    assert resp.json()["role"] == "user"
+
+
+def test_public_register_with_analyst_role_creates_user(client):
+    """Client-supplied analyst role must be ignored during public registration."""
+    resp = client.post("/api/v1/auth/register", json={
+        "email": "attacker2@fraudshield.ai", "password": "StrongPass123!", "role": "analyst",
+    })
+    assert resp.status_code == 201
+    assert resp.json()["role"] == "user"
 
 
 def test_login_rejects_wrong_password(client):
@@ -42,7 +61,7 @@ def test_login_rejects_wrong_password(client):
 
 
 def test_register_rejects_duplicate_email(client):
-    payload = {"email": "dup@fraudshield.ai", "password": "StrongPass123!", "role": "user"}
+    payload = {"email": "dup@fraudshield.ai", "password": "StrongPass123!"}
     first = client.post("/api/v1/auth/register", json=payload)
     second = client.post("/api/v1/auth/register", json=payload)
     assert first.status_code == 201

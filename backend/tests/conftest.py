@@ -71,10 +71,19 @@ def client(db_session):
 
 
 @pytest.fixture()
-def admin_token(client):
-    client.post("/api/v1/auth/register", json={
-        "email": "admin@fraudshield.ai", "password": "StrongPass123!", "role": "admin",
-    })
+def admin_token(client, db_session):
+    # Test setup: directly provision an admin user in the test database.
+    # Public registration (POST /api/v1/auth/register) always creates role="user";
+    # admin accounts can only be created via the protected /api/v1/users endpoint.
+    from app.auth.security import hash_password
+    from app.models.user import User
+    admin = User(
+        email="admin@fraudshield.ai",
+        password_hash=hash_password("StrongPass123!"),
+        role="admin",
+    )
+    db_session.add(admin)
+    db_session.commit()
     resp = client.post("/api/v1/auth/login", json={
         "email": "admin@fraudshield.ai", "password": "StrongPass123!",
     })
@@ -84,7 +93,7 @@ def admin_token(client):
 @pytest.fixture()
 def user_token(client):
     client.post("/api/v1/auth/register", json={
-        "email": "viewer@fraudshield.ai", "password": "StrongPass123!", "role": "user",
+        "email": "viewer@fraudshield.ai", "password": "StrongPass123!",
     })
     resp = client.post("/api/v1/auth/login", json={
         "email": "viewer@fraudshield.ai", "password": "StrongPass123!",

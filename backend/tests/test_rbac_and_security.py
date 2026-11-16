@@ -65,3 +65,68 @@ def test_error_response_format_is_consistent(client):
     assert "error" in body
     assert "code" in body["error"]
     assert "message" in body["error"]
+
+
+# ---- Public registration role-escalation protection ----
+
+def test_public_register_with_admin_role_creates_user(client):
+    """Client-supplied admin role must be ignored during public registration."""
+    resp = client.post("/api/v1/auth/register", json={
+        "email": "sec_attacker@fraudshield.ai", "password": "StrongPass123!", "role": "admin",
+    })
+    assert resp.status_code == 201
+    assert resp.json()["role"] == "user"
+
+
+def test_public_register_with_analyst_role_creates_user(client):
+    """Client-supplied analyst role must be ignored during public registration."""
+    resp = client.post("/api/v1/auth/register", json={
+        "email": "sec_attacker2@fraudshield.ai", "password": "StrongPass123!", "role": "analyst",
+    })
+    assert resp.status_code == 201
+    assert resp.json()["role"] == "user"
+
+
+def test_public_register_defaults_to_user_role(client):
+    """Public registration with no role field must create a user."""
+    resp = client.post("/api/v1/auth/register", json={
+        "email": "sec_normal@fraudshield.ai", "password": "StrongPass123!",
+    })
+    assert resp.status_code == 201
+    assert resp.json()["role"] == "user"
+
+
+# ---- Admin-only user creation protection ----
+
+def test_unauthenticated_cannot_create_user(client):
+    """POST /api/v1/users without a token must return 401."""
+    resp = client.post("/api/v1/users", json={
+        "email": "sec_new@fraudshield.ai", "password": "StrongPass123!", "role": "user",
+    })
+    assert resp.status_code == 401
+
+
+def test_analyst_cannot_create_admin_user(client, user_token):
+    """An analyst must not be able to create admin accounts via /api/v1/users."""
+    resp = client.post("/api/v1/users", json={
+        "email": "sec_newadmin@fraudshield.ai", "password": "StrongPass123!", "role": "admin",
+    }, headers={"Authorization": f"Bearer {user_token}"})
+    assert resp.status_code == 403
+
+
+def test_admin_can_create_admin_user(client, admin_token):
+    """An admin can create another admin account via /api/v1/users."""
+    resp = client.post("/api/v1/users", json={
+        "email": "sec_created_admin@fraudshield.ai", "password": "StrongPass123!", "role": "admin",
+    }, headers={"Authorization": f"Bearer {admin_token}"})
+    assert resp.status_code == 201
+    assert resp.json()["role"] == "admin"
+
+
+def test_admin_can_create_analyst_user(client, admin_token):
+    """An admin can create an analyst account via /api/v1/users."""
+    resp = client.post("/api/v1/users", json={
+        "email": "sec_created_analyst@fraudshield.ai", "password": "StrongPass123!", "role": "analyst",
+    }, headers={"Authorization": f"Bearer {admin_token}"})
+    assert resp.status_code == 201
+    assert resp.json()["role"] == "analyst"

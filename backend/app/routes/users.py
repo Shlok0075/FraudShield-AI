@@ -8,7 +8,7 @@ from app.auth.dependencies import require_role
 from app.auth.security import hash_password
 from app.database import get_db
 from app.models.user import User
-from app.schemas.auth import UserOut, UserRegister, UserRoleUpdate
+from app.schemas.auth import AdminUserCreate, UserOut, UserRoleUpdate
 from app.services.audit_service import log_action
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -20,7 +20,7 @@ def list_users(db: Session = Depends(get_db), current_user: User = Depends(requi
 
 
 @router.post("", response_model=UserOut, status_code=201)
-def create_user(payload: UserRegister, request: Request, db: Session = Depends(get_db),
+def create_user(payload: AdminUserCreate, request: Request, db: Session = Depends(get_db),
                  current_user: User = Depends(require_role(["admin"]))):
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(status_code=400, detail={"error": {"code": "EMAIL_EXISTS", "message": "Email already registered"}})

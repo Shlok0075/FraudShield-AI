@@ -7,6 +7,8 @@ Implemented and ready to explain in the viva:
 | Password hashing | bcrypt via passlib (`app/auth/security.py`) — never plaintext |
 | JWT authentication | short-lived (60 min) access tokens, secret from `JWT_SECRET` env var, HS256 |
 | Role-based access control | `require_role([...])` dependency, per-route (`app/auth/dependencies.py`) |
+| Public registration | Always creates `role="user"`; client-supplied `role` field is ignored (`app/routes/auth.py`, `app/schemas/auth.py`) |
+| Admin user creation | Protected `POST /api/v1/users` endpoint, requires `require_role(["admin"])` (`app/routes/users.py`) |
 | Input validation | Pydantic schemas on every request body (`app/schemas/*.py`) |
 | SQL injection prevention | SQLAlchemy ORM, parameterized queries — no raw string-formatted SQL anywhere |
 | CORS | explicit allow-list (`CORS_ORIGINS` env var), never `"*"` |
@@ -31,6 +33,29 @@ Implemented and ready to explain in the viva:
 `slowapi.Limiter` with `get_remote_address` as the key function. Exceeding the limit returns HTTP 429. Login is
 capped tighter (10/minute) than prediction (60/minute) since brute-force credential guessing is the primary
 threat on `/auth/login`, while the simulator legitimately needs a higher prediction throughput.
+
+## Public registration role protection
+
+**Vulnerability fixed:** The public registration endpoint (`POST /api/v1/auth/register`) previously accepted a
+`role` field from the client, allowing anyone to register with `role=admin` or `role=analyst` and escalate
+privileges.
+
+**Fix:**
+- `UserRegister` schema (`app/schemas/auth.py`) no longer accepts a `role` field from the client.
+- The registration route (`app/routes/auth.py`) always sets `role="user"` server-side, ignoring any client-supplied
+  role value.
+- Admin and analyst accounts can only be created through the protected `POST /api/v1/users` endpoint, which
+  requires `require_role(["admin"])`.
+- JWT role claims are generated from the actual database user role, not client input.
+
+**Verified via automated tests (`backend/tests/test_auth.py`, `backend/tests/test_rbac_and_security.py`):**
+- Public registration with `role=admin` → account created with `role="user"`
+- Public registration with `role=analyst` → account created with `role="user"`
+- Public registration with no role field → account created with `role="user"`
+- Unauthenticated `POST /api/v1/users` → 401
+- Analyst attempting `POST /api/v1/users` with `role=admin` → 403
+- Admin creating admin account via `POST /api/v1/users` → 201, role="admin"
+- Admin creating analyst account via `POST /api/v1/users` → 201, role="analyst"
 
 ## What is deliberately never stored
 Real card numbers, CVVs, OTPs, or real banking credentials — anywhere in this codebase, including test fixtures
