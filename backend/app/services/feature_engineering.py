@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import sys
 
-from sqlalchemy import func, select, text
+from sqlalchemy import func, inspect, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -69,6 +69,55 @@ def _ts(dt: datetime | None) -> float:
         return datetime.now(timezone.utc).timestamp()
     aware = dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
     return aware.timestamp()
+
+
+# Per-process caches. The bulk corpus is immutable once ingested (negative ids), so its
+# per-merchant count never changes while the app runs.
+# Keyed by the database engine so a different database (e.g. a fresh in-memory test DB)
+# never sees another one's cached numbers.
+_CORPUS_CP_COUNT: dict[tuple[int, int], int] = {}
+_HAS_MERCHANT_ROLLUP: dict[int, bool] = {}
+
+
+def _has_merchant_rollup(db: Session) -> bool:
+    """True when ml/src/paysim_ingest.py created `paysim_merchant_counts`.
+
+    Checked once with the inspector instead of by running a SELECT that fails: on
+    Postgres a failed statement aborts the whole transaction, so every query after it
+    in the same session would raise InFailedSqlTransaction.
+    """
+    bind = db.get_bind()
+    key = id(bind)
+    if key not in _HAS_MERCHANT_ROLLUP:
+        try:
+            _HAS_MERCHANT_ROLLUP[key] = inspect(bind).has_table("paysim_merchant_counts")
+        except SQLAlchemyError:
+            _HAS_MERCHANT_ROLLUP[key] = False
+    return _HAS_MERCHANT_ROLLUP[key]
+
+
+def _merchant_prior_count(db: Session, merchant_id: int | None, cp_key_id: int) -> int:
+    """Rows already recorded for this counterparty (the engine's `n`)."""
+    if _has_merchant_rollup(db):
+        total = db.execute(
+            text("SELECT prior_count FROM paysim_merchant_counts WHERE merchant_id = :mid"),
+            {"mid": cp_key_id},
+        ).scalar()
+        if total is not None:
+            return int(total)
+    # No rollup (or no row for this merchant). A COUNT over the whole table scans every
+    # bulk row (~0.4s at 6.36M rows) and used to run on EVERY transaction. Split it:
+    # the immutable corpus part (id < 0) is counted once per process and cached, the live
+    # part (id >= 0) is a cheap primary-key range count.
+    match = (Transaction.merchant_id.is_(None) if merchant_id is None
+             else Transaction.merchant_id == merchant_id)
+    ckey = (id(db.get_bind()), cp_key_id)
+    if ckey not in _CORPUS_CP_COUNT:
+        _CORPUS_CP_COUNT[ckey] = db.execute(
+            select(func.count(Transaction.id)).where(match, Transaction.id < 0)).scalar() or 0
+    live = db.execute(
+        select(func.count(Transaction.id)).where(match, Transaction.id >= 0)).scalar() or 0
+    return _CORPUS_CP_COUNT[ckey] + live
 
 
 def build_features(db: Session, txn_input: dict) -> dict:
@@ -126,18 +175,7 @@ def build_features(db: Session, txn_input: dict) -> dict:
     # instead costs ~1.5s, because every bulk row shares the NULL/"unknown"
     # merchant bucket. Falls back to COUNT(*) where no rollup exists.
     cp_key_id = UNKNOWN_MERCHANT_KEY if merchant_id is None else int(merchant_id)
-    cp_total = None
-    try:
-        cp_total = db.execute(
-            text("SELECT prior_count FROM paysim_merchant_counts WHERE merchant_id = :mid"),
-            {"mid": cp_key_id},
-        ).scalar()
-    except SQLAlchemyError:
-        cp_total = None
-    if cp_total is None:
-        cp_where = (Transaction.merchant_id.is_(None) if merchant_id is None
-                    else Transaction.merchant_id == merchant_id)
-        cp_total = db.execute(select(func.count(Transaction.id)).where(cp_where)).scalar() or 0
+    cp_total = _merchant_prior_count(db, merchant_id, cp_key_id)
     engine.seed_counterparty_count(cp_key, max(int(cp_total) - replayed_cp, 0))
 
     lat, lon = _coords(txn_input.get("location"))
