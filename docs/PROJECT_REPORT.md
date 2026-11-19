@@ -1488,7 +1488,7 @@ A report that lists only strengths is not credible. These are the real constrain
 
 | # | Limitation | Consequence |
 |---|-----------|-------------|
-| L12 | Hard browser refresh clears the session | The JWT is held in memory, so a refresh returns the user to the login screen. Not fixed — out of scope for the last change set. |
+| L12 | ~~Hard browser refresh clears the session~~ | Fixed: the JWT is kept in `sessionStorage`, restored on load via `/auth/me`, and cleared on logout, 401 or tab close. |
 | L13 | No HTTPS in local development | Tokens travel in cleartext locally. Production deployment provides TLS. |
 | L14 | Single-process background feed | The feed runs in the application process; running multiple workers would produce multiple feeds. |
 | L15 | In-memory rate-limit state | Rate limits reset on restart and are not shared across processes. |
