@@ -16,7 +16,7 @@ dashboard — combining applied ML, backend/API engineering, and real-time web d
 
 Every part of this project was actually built and verified running end-to-end during development: real trained
 model artifacts, a real PostgreSQL database with Alembic migrations, a live FastAPI backend, a live React
-dashboard tested with a real browser, 45 passing automated tests, and full documentation. See `docs/` for the
+dashboard tested with a real browser, 108 passing automated tests (56 backend, 52 ML), and full documentation. See `docs/` for the
 complete handbook-structured write-up (architecture, security, testing, deployment, final report, viva prep).
 
 ## Technology Stack
@@ -38,7 +38,7 @@ FraudShield-AI/
 ├── backend/         FastAPI app (auth, transactions, predict, alerts, dashboard, reports, audit)
 │   ├── app/         models, schemas, routes, services, ml wrapper, auth, websocket
 │   ├── alembic/     database migrations
-│   └── tests/       pytest unit + integration tests (27 tests)
+│   └── tests/       pytest unit + integration tests (56 tests)
 ├── ml/
 │   ├── notebooks/   01_eda → 05_tuning, executed with saved output cells
 │   ├── src/         generate_dataset, preprocessing, train, predict, decision_engine (+18 tests)
@@ -103,16 +103,27 @@ docker compose up --build
 ## Tests
 
 ```bash
-cd backend && source venv/bin/activate && pytest tests/ --cov=app        # 27 tests, 85% coverage
-cd ml/src && pytest test_ml.py                                            # 18 tests
+cd backend && source venv/bin/activate && pytest tests/ --cov=app        # 56 tests
+cd ml/src && pytest test_ml.py test_pipeline.py test_risk_engine.py test_experiments.py   # 52 tests
 ```
 
 ## Model performance (real numbers, this repo)
 
-Final model: **XGBoost + IsolationForest + behavior + rules (live-hybrid-v1)** — trained on PaySim 6M
-(PS_20174392719_1491204439457_log.csv, 6,362,620 rows, 8,213 fraud). Test metrics on held-out 1,293,523-row split:
-PR-AUC **0.3255**, ROC-AUC **0.8915**, Block precision **0.9357** at recall **0.0752**, Review recall **0.9587** at precision **0.0045**.
-Hybrid weights: ml=0.60, behavior=0.40. Review threshold 5.0, block threshold 60.0.
+Serving model (`ml/models/live-v1`, `live-hybrid-v1`): XGBoost risk score, trained on PaySim 6M
+(6,362,620 rows, 8,213 fraud) with a chronological split and leakage-safe point-in-time features. Test metrics on the
+held-out 1,293,523-row split (4,258 fraud), thresholds chosen on validation:
+
+| | PR-AUC | ROC-AUC | Review (recall / precision) | Block (recall / precision) |
+|---|---|---|---|---|
+| Before bug fix | 0.3255 | 0.8915 | 0.959 / 0.0045 | 0.075 / 0.936 |
+| **Now** | **0.5147** | **0.9666** | 0.931 / 0.015 | 0.625 / 0.254 |
+
+The earlier numbers were low because the transaction type never reached the model (see `docs/paysim_evaluation.md`).
+The blend weights are now selected with a parsimony guard, which picked ML-only: PaySim users almost never repeat
+(99.7% of test transactions are a user's first), so behaviour and rule signals add nothing there.
+This is a *realistic, no-balance-features* benchmark; PaySim balance columns are deliberately excluded by default
+(`build_dataset --balance` adds them back as an optional feature group). Metrics are on synthetic PaySim data, not
+production banking performance.
 Full experiment results in `ml/models/live-v1/metadata.json` and `ml/data/processed/paysim-v1/`.
 
 ## Documentation index (`docs/`)

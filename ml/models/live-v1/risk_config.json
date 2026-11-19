@@ -1,12 +1,12 @@
 {
   "weights": {
-    "ml": 0.6,
+    "ml": 1.0,
     "anomaly": 0.0,
-    "behavior": 0.4,
+    "behavior": 0.0,
     "rules": 0.0
   },
-  "review_threshold": 5.0,
-  "block_threshold": 60.0,
+  "review_threshold": 10.0,
+  "block_threshold": 95.0,
   "force_review_rules": [
     "impossible_velocity"
   ],

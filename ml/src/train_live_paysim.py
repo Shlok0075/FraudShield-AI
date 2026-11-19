@@ -40,6 +40,7 @@ from fraudpipe.risk_engine import RiskConfig, behavior_score, evaluate_rules, ru
 DATA_DIR = SRC.parent / "data" / "processed" / "paysim-v1"
 MODEL_DIR = SRC.parent / "models" / "live-v1"
 SEED = 42
+MIN_BLEND_GAIN = 0.02   # absolute validation PR-AUC a blend must gain over ML-only to be used
 
 # Feature columns the live model serves (matching predict.py / feature_engineering.py)
 # Paysim-v1 features + device_geo fields (default to 0 at inference since paysim has no device/geo)
@@ -71,6 +72,10 @@ def align_columns(df: pd.DataFrame, feature_columns: list[str], medians: dict) -
     for col in feature_columns:
         if col in df.columns:
             out[col] = df[col]
+        elif col.startswith("txn_type=") and "txn_type" in df.columns:
+            # The processed CSVs store txn_type as a string; one-hot it here. (Before this fix these
+            # columns silently fell through to 0.0, so the model never saw the transaction type.)
+            out[col] = (df["txn_type"].astype(str) == col.split("=", 1)[1]).astype(float)
         else:
             out[col] = medians.get(col, 0.0)
     # Fill any NaN
@@ -212,6 +217,12 @@ def tune_weights(y, sigs, cost=CostMatrix()):
                 key = (pr, -min_cost)
                 if best is None or key > best[0]:
                     best = (key, w, score)
+    # Parsimony guard: only fall back from the pure ML score when a blend clearly wins on VALIDATION.
+    # PaySim has ~0.15% repeat users, so behaviour/rule signals are almost always zero; a blend that
+    # wins by a hair on a few hundred validation frauds is noise, and it dilutes the ML score.
+    ml_pr = average_precision_score(y, sigs["ml"])
+    if best[0][0] < ml_pr + MIN_BLEND_GAIN:
+        best = ((ml_pr, 0.0), {"ml": 1.0, "anomaly": 0.0, "behavior": 0.0, "rules": 0.0}, sigs["ml"])
     thresholds = select_thresholds(sweep(y, best[2], cost))
     review = max(0.0, min(100.0, thresholds["high_recall"] * 100))
     block = max(review, min(100.0, thresholds["high_precision"] * 100))
@@ -242,8 +253,9 @@ def main():
     X_legit = X_tr[legit_sample]
 
     xgb = XGBClassifier(
-        n_estimators=120, max_depth=6, learning_rate=0.08,
-        subsample=0.9, colsample_bytree=0.9, min_child_weight=2,
+        # same settings as the best offline experiment (D_xgboost_class_weight in fraudpipe/experiments.py)
+        n_estimators=300, max_depth=6, learning_rate=0.1,
+        subsample=0.8, colsample_bytree=0.8,
         scale_pos_weight=scale_pos, eval_metric="aucpr",
         random_state=SEED, n_jobs=-1, tree_method="hist",
     )

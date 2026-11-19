@@ -65,6 +65,10 @@ class ModelService:
     def _matrix(cls, feature_dict: dict) -> np.ndarray:
         values = []
         for col in cls._feature_columns:
+            if col.startswith("txn_type=") and col not in feature_dict:
+                # One-hot the string txn_type the feature engine emits (an unseen type -> all zeros).
+                values.append(1.0 if str(feature_dict.get("txn_type")) == col.split("=", 1)[1] else 0.0)
+                continue
             value = feature_dict.get(col, cls._medians.get(col, 0.0))
             try:
                 value = float(value)
