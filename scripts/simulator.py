@@ -33,6 +33,15 @@ SCENARIOS = [
     "rapid_repeated", "new_device", "unusual_location", "card_testing", "account_takeover", "transaction_splitting", "fraud_ring",
 ]
 
+# Attack-style scenarios; everything else is ordinary customer behaviour. Real card/UPI fraud in
+# Asia is a few percent of volume, so attacks are drawn only `--fraud-rate` of the time (3%).
+ATTACK_SCENARIOS = ["suspicious", "card_testing", "account_takeover", "transaction_splitting", "fraud_ring"]
+LEGIT_SCENARIOS = ["normal"] * 22 + ["high_value", "new_device", "rapid_repeated", "unusual_location"]
+
+
+def pick_scenario(fraud_rate: float) -> str:
+    return random.choice(ATTACK_SCENARIOS if random.random() < fraud_rate else LEGIT_SCENARIOS)
+
 
 def get_token(base_url: str, email: str, password: str) -> str:
     resp = httpx.post(f"{base_url}/api/v1/auth/login", json={"email": email, "password": password})
@@ -119,13 +128,13 @@ def send_transaction(base_url: str, token: str, payload: dict) -> dict:
     return resp.json()
 
 
-def run(base_url: str, email: str, password: str, interval: float, count: int | None):
+def run(base_url: str, email: str, password: str, interval: float, count: int | None, fraud_rate: float = 0.03):
     token = get_token(base_url, email, password)
     print(f"[simulator] authenticated against {base_url}")
 
     sent = 0
     while count is None or sent < count:
-        scenario = random.choice(SCENARIOS)
+        scenario = pick_scenario(fraud_rate)
 
         if scenario == "rapid_repeated":
             # fire 3 in quick succession, matching PART 13.4's definition.
@@ -161,11 +170,12 @@ if __name__ == "__main__":
     parser.add_argument("--email", default="admin@fraudshield.ai")
     parser.add_argument("--password", default="StrongPass123!")
     parser.add_argument("--interval", type=float, default=3.0, help="seconds between transactions")
+    parser.add_argument("--fraud-rate", type=float, default=0.03, help="share of transactions that are attacks (default 0.03 = 3%%)")
     parser.add_argument("--count", type=int, default=None, help="stop after N transactions (default: run forever)")
     args = parser.parse_args()
 
     try:
-        run(args.base_url, args.email, args.password, args.interval, args.count)
+        run(args.base_url, args.email, args.password, args.interval, args.count, args.fraud_rate)
     except KeyboardInterrupt:
         print("\n[simulator] stopped by user")
         sys.exit(0)

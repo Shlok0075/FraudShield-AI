@@ -315,3 +315,14 @@ def test_duplicate_email_is_rejected(client, admin_token):
                          json=body)
     assert second.status_code in (400, 409)
     assert second.json()["error"]["code"] == "EMAIL_EXISTS"
+
+
+def test_feed_attack_share_matches_the_configured_fraud_rate():
+    import random
+    from app.services.live_feed import ATTACK_SCENARIOS, pick_scenario
+    attacks = {n for n, _ in ATTACK_SCENARIOS}
+    rng = random.Random(1)
+    n = 60_000
+    share = sum(pick_scenario(0.03, rng) in attacks for _ in range(n)) / n
+    assert 0.027 < share < 0.033                       # 3% by default, not the old ~60%
+    assert pick_scenario(0.0, rng) not in attacks and pick_scenario(1.0, rng) in attacks

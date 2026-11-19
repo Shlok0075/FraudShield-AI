@@ -34,27 +34,47 @@ KNOWN_DEVICES = {u: f"dev-user{u}-primary" for u in KNOWN_USERS}
 KNOWN_LOCATIONS = ["Mumbai", "Delhi", "Bengaluru", "Pune", "Chennai", "Hyderabad"]
 UNUSUAL_LOCATIONS = ["Lagos", "Minsk", "Unknown-VPN-Exit", "Reykjavik"]
 
-# Weighted so the dashboard shows a realistic spread: mostly ordinary traffic
-# with a steady trickle of the patterns an analyst actually wants to see.
-SCENARIOS = [
-    ("normal", 40),
-    ("suspicious", 15),
-    ("high_value", 10),
-    ("rapid_repeated", 8),
-    ("new_device", 8),
-    ("unusual_location", 6),
-    ("card_testing", 4),
-    ("account_takeover", 4),
-    ("transaction_splitting", 3),
-    ("fraud_ring", 2),
+# Traffic mix. Real card/UPI fraud in Asia is a few percent of volume at most, so the feed is
+# built from two pools and `LIVE_FEED_FRAUD_RATE` (default 3%) decides how often a transaction is
+# an attack. The old single list was ~60% attack-style traffic, which pushed the dashboard's
+# fraud rate to 7-8%.
+#   LEGIT   - ordinary customers, plus a little unusual-but-genuine behaviour (a big purchase, a
+#             new phone, travelling) so the model still has to tell it apart from fraud.
+#   ATTACK  - the patterns an analyst actually wants to see.
+LEGIT_SCENARIOS = [
+    ("normal", 88),
+    ("high_value", 4),
+    ("new_device", 4),
+    ("rapid_repeated", 2),
+    ("unusual_location", 2),
 ]
+ATTACK_SCENARIOS = [
+    ("account_takeover", 30),
+    ("card_testing", 25),
+    ("suspicious", 15),
+    ("transaction_splitting", 15),
+    ("fraud_ring", 15),
+]
+SCENARIOS = LEGIT_SCENARIOS + ATTACK_SCENARIOS   # every scenario the feed can produce
+
+
+def _expand(table: list[tuple[str, int]]) -> list[str]:
+    out: list[str] = []
+    for name, weight in table:
+        out.extend([name] * weight)
+    return out
 
 
 def _weighted_scenarios() -> list[str]:
-    out: list[str] = []
-    for name, weight in SCENARIOS:
-        out.extend([name] * weight)
-    return out
+    return _expand(SCENARIOS)
+
+
+def pick_scenario(fraud_rate: float | None = None, rng=random) -> str:
+    """One scenario: an attack with probability `fraud_rate`, otherwise legitimate traffic."""
+    rate = settings.LIVE_FEED_FRAUD_RATE if fraud_rate is None else fraud_rate
+    rate = min(1.0, max(0.0, float(rate)))
+    table = ATTACK_SCENARIOS if rng.random() < rate else LEGIT_SCENARIOS
+    return rng.choice(_expand(table))
 
 
 def build_payload(scenario: str) -> dict:
@@ -164,6 +184,7 @@ class LiveFeed:
             "enabled": settings.LIVE_FEED_ENABLED,
             "interval_seconds": settings.LIVE_FEED_INTERVAL_SECONDS,
             "burst_size": settings.LIVE_FEED_BURST,
+            "fraud_rate": settings.LIVE_FEED_FRAUD_RATE,
             "generated": self.generated,
             "errors": self.errors,
             "last_error": self.last_error,
@@ -175,7 +196,6 @@ class LiveFeed:
     async def _run(self) -> None:
         interval = max(0.2, float(settings.LIVE_FEED_INTERVAL_SECONDS))
         burst = max(1, int(settings.LIVE_FEED_BURST))
-        pool = _weighted_scenarios()
         log.info("live feed running: %d txn every %.1fs", burst, interval)
 
         while not self._stopping.is_set():
@@ -183,7 +203,7 @@ class LiveFeed:
                 if self._stopping.is_set():
                     return
                 try:
-                    await self._emit_one(random.choice(pool))
+                    await self._emit_one(pick_scenario())
                 except Exception as exc:  # noqa: BLE001
                     # A single bad payload must never kill the feed; count it and
                     # keep going, otherwise one transient DB error would silently
