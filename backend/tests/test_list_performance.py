@@ -56,7 +56,7 @@ def test_cases_list_query_count_does_not_grow_with_case_count(client, db_session
     resp, large = _count_queries(client, db_session, "/api/v1/cases", admin_token)
     assert len(resp.json()) == 45
     assert large == small                                      # constant, no N+1
-    assert large <= 6
+    assert large <= 9                                         # notes + alerts + txns batched, plus auth
 
 
 def test_cases_list_returns_notes_in_order_and_paginates(client, db_session, admin_token):
