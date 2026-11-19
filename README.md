@@ -126,6 +126,28 @@ This is a *realistic, no-balance-features* benchmark; PaySim balance columns are
 production banking performance.
 Full experiment results in `ml/models/live-v1/metadata.json` and `ml/data/processed/paysim-v1/`.
 
+## Automated investigation
+
+Every REVIEW/BLOCK alert is investigated automatically (`backend/app/services/investigation_service.py`,
+engine in `ml/src/fraudpipe/investigation_engine.py`), and a background sweeper
+(`services/auto_investigator.py`) picks up anything the inline path missed.
+
+| Engine verdict | When | What happens |
+|---|---|---|
+| `AUTO_CLEAR` | every signal below 0.20, no rule or check fired, a prediction exists | case **closed** as `auto_cleared`, alert marked `false_positive`, transaction allowed |
+| `AUTO_BLOCK` | model >= 0.90 **and** another signal/check agrees (or a strong weighted score) | transaction **blocked**, alert escalated, case stays **open** as `auto_blocked` |
+| `REVIEW` | everything else | alert escalated, case open for an analyst |
+
+Confirming fraud is deliberately a human decision. A case a human already decided is never overwritten.
+Automatic actions are attributed to a non-login system account and written to the audit log. Open cases
+nobody touches for `AUTO_ESCALATE_AFTER_HOURS` (default 4) are raised to high priority.
+
+Settings (environment): `AUTO_RESOLVE_ENABLED` (false = investigate but never act),
+`AUTO_RESOLVE_SHADOW` (true = record what it *would* do, change nothing), `AUTO_INVESTIGATE_ENABLED`,
+`AUTO_INVESTIGATE_INTERVAL_SECONDS`, `AUTO_INVESTIGATE_BATCH`, `AUTO_ESCALATE_AFTER_HOURS`.
+`GET /api/v1/investigation/stats` shows how many cases were handled automatically vs. by analysts.
+Start with `AUTO_RESOLVE_SHADOW=true`, compare against analyst decisions, then turn it off.
+
 ## Documentation index (`docs/`)
 
 `requirements.md` · `architecture.md` · `dataset_choice.md` · `data_dictionary.md` · `eda_findings.md` ·

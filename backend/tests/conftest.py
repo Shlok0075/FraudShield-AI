@@ -28,6 +28,8 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 # than the one under test, injecting non-determinism into every count-based
 # assertion. Feed behaviour is covered explicitly in test_live_feed.py.
 os.environ.setdefault("LIVE_FEED_ENABLED", "false")
+# Same for the background auto-investigation sweeper (covered explicitly in test_auto_investigation.py).
+os.environ.setdefault("AUTO_INVESTIGATE_ENABLED", "false")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 

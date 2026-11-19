@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import api from '../services/api'
 
 const PAGE_SIZE = 100
+const DECISION_LABEL = { auto_cleared: 'Auto-cleared', auto_blocked: 'Auto-blocked (needs analyst)', needs_review: 'Needs review', confirmed_fraud: 'Confirmed fraud', false_positive: 'False positive' }
+const decisionLabel = (d) => DECISION_LABEL[d] || d || '—'
 
 export default function Cases() {
   const [cases,setCases]=useState([]); const [selected,setSelected]=useState(null); const [note,setNote]=useState('')
@@ -28,7 +30,7 @@ export default function Cases() {
     <div className="grid lg:grid-cols-3 gap-4">
       <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <table className="w-full text-sm"><thead><tr className="text-left text-slate-500 bg-slate-950/50"><th className="p-3">Case</th><th>Alert</th><th>Priority</th><th>Status</th><th>Decision</th></tr></thead><tbody>
-        {cases.map(c=><tr key={c.id} onClick={()=>setSelected(c)} className="border-t border-slate-800 cursor-pointer hover:bg-slate-800/40"><td className="p-3 text-white">#{c.id}</td><td>#{c.alert_id}</td><td className="capitalize">{c.priority}</td><td className="capitalize">{c.status}</td><td>{c.decision||'—'}</td></tr>)}
+        {cases.map(c=><tr key={c.id} onClick={()=>setSelected(c)} className="border-t border-slate-800 cursor-pointer hover:bg-slate-800/40"><td className="p-3 text-white">#{c.id}</td><td>#{c.alert_id}</td><td className="capitalize">{c.priority}</td><td className="capitalize">{c.status}</td><td>{decisionLabel(c.decision)}</td></tr>)}
         {cases.length===0&&<tr><td colSpan="5" className="p-8 text-center text-slate-500">No cases yet. New REVIEW/BLOCK alerts create cases automatically.</td></tr>}
         </tbody></table>
         {hasMore&&<div className="p-3 text-center border-t border-slate-800"><button onClick={loadMore} disabled={loadingMore} className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm text-white hover:bg-slate-700 disabled:opacity-50">{loadingMore?'Loading…':'Load more'}</button></div>}

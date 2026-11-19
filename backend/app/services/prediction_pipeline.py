@@ -140,7 +140,9 @@ def _score_and_persist(db: Session, payload: dict) -> tuple[dict, list[tuple[str
     investigation = None
     if result["create_alert"] and result["decision"] in ("REVIEW", "BLOCK"):
         try:
-            investigation = run_investigation(db, alert.id, emit=False)
+            investigation = run_investigation(
+                db, alert.id, emit=False,
+                features=features, graph_features=features.get("_graph_features"))
             result["investigation"] = {
                 "decision": investigation["decision"],
                 "confidence": investigation["confidence"],
