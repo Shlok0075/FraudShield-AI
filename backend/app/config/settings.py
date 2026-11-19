@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     LIVE_FEED_ENABLED: bool = True
     LIVE_FEED_INTERVAL_SECONDS: float = 5.0
     LIVE_FEED_BURST: int = 3
+    # Share of fed transactions that are attacks (0.03 = 3%, in line with Asian card/UPI fraud).
+    LIVE_FEED_FRAUD_RATE: float = 0.03
 
     # --- Automated investigation ---
     # AUTO_RESOLVE_ENABLED=false: the engine still investigates and writes its report, but every
