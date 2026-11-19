@@ -114,3 +114,56 @@ def test_queue_pagination_does_not_overlap(client, db_session, admin_token):
     rest = client.get("/api/v1/cases?queue=needs_review&limit=4&offset=4", headers=H(admin_token)).json()
     ids = [c["id"] for c in first + rest]
     assert len(first) == 4 and len(rest) == 3 and len(set(ids)) == 7
+
+
+REPORT = """FRAUDSHIELD AI — AUTOMATED INVESTIGATION REPORT
+==================================================
+Investigation Confidence: 91%
+Auto-Decision: AUTO_BLOCK
+Risk Level: CRITICAL
+Investigated At: 2026-10-30T07:50:52+00:00
+
+EVIDENCE SIGNALS:
+------------------------------
+  • Supervised ML (XGBoost): 96% (weight 40%)
+  • Behavioral Deviation: 55% (weight 20%)
+
+AUTOMATED CHECKS:
+------------------------------
+  [FRAUD] velocity: 6 transactions in 1 minute (confidence 80%)
+
+REASONING:
+------------------------------
+  High-confidence fraud indicators detected across multiple signals.
+
+RECOMMENDED ACTION:
+  Keep the transaction blocked and have an analyst confirm or overturn it.
+"""
+
+
+def test_report_is_structured_and_not_duplicated_as_a_note(client, db_session, admin_token):
+    from app.models.case import CaseNote
+    case = add_case(db_session, "auto_blocked")
+    db_session.add(CaseNote(case_id=case.id, author_id=1, note=REPORT))
+    db_session.add(CaseNote(case_id=case.id, author_id=1, note="called the customer"))
+    db_session.commit()
+    body = client.get(f"/api/v1/cases/{case.id}", headers=H(admin_token)).json()
+    inv = body["investigation"]
+    assert inv["confidence"] == 91 and inv["risk_level"] == "CRITICAL"
+    assert inv["signals"][0] == {"name": "Supervised ML (XGBoost)", "score": 96}
+    assert inv["checks"] == ["velocity: 6 transactions in 1 minute (confidence 80%)"]
+    assert "confirm or overturn" in inv["recommendation"]
+    assert [n["note"] for n in body["notes"]] == ["called the customer"]
+
+
+def test_case_without_report_has_no_investigation(client, db_session, admin_token):
+    case = add_case(db_session)
+    assert client.get(f"/api/v1/cases/{case.id}", headers=H(admin_token)).json()["investigation"] is None
+
+
+def test_deciding_a_case_closes_and_assigns_it_automatically(client, db_session, admin_token):
+    case = add_case(db_session, "auto_blocked")
+    r = client.patch(f"/api/v1/cases/{case.id}", json={"decision": "confirmed_fraud"}, headers=H(admin_token))
+    body = r.json()
+    assert r.status_code == 200
+    assert body["status"] == "closed" and body["queue"] == "closed" and body["assigned_to"] is not None
