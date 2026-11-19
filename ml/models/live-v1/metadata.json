@@ -44,34 +44,34 @@
     "test": 1293523
   },
   "metrics": {
-    "pr_auc": 0.32552723108807874,
-    "roc_auc": 0.8914988280113145,
+    "pr_auc": 0.514681418169992,
+    "roc_auc": 0.9666113794865994,
     "review": {
-      "precision": 0.004486631333437384,
-      "recall": 0.9586660403945514,
-      "f1": 0.008931462729413,
-      "threshold": 0.05
+      "precision": 0.015421793644493217,
+      "recall": 0.9307186472522311,
+      "f1": 0.030340846450664545,
+      "threshold": 0.1
     },
     "block": {
-      "precision": 0.935672514619883,
-      "recall": 0.0751526538280883,
-      "f1": 0.1391304347826087,
-      "threshold": 0.6
+      "precision": 0.2538622925805836,
+      "recall": 0.6251761390324095,
+      "f1": 0.36109603906673904,
+      "threshold": 0.95
     },
     "fraud_test": 4258,
     "test_rows": 1293523
   },
   "scale_pos_weight": 1193.5892913385826,
   "weights": {
-    "ml": 0.6,
+    "ml": 1.0,
     "anomaly": 0.0,
-    "behavior": 0.4,
+    "behavior": 0.0,
     "rules": 0.0
   },
-  "review_threshold": 5.0,
-  "block_threshold": 60.0,
-  "anomaly_score_low": 0.3710101068621043,
-  "anomaly_score_high": 0.6948192537217703,
-  "trained_at": "2026-11-16T12:04:20.048596+00:00",
+  "review_threshold": 10.0,
+  "block_threshold": 95.0,
+  "anomaly_score_low": 0.3894037539379668,
+  "anomaly_score_high": 0.6745710968445724,
+  "trained_at": "2026-11-19T16:51:42.857419+00:00",
   "disclaimer": "Academic prototype. Trained on PaySim synthetic data; not production banking performance."
 }

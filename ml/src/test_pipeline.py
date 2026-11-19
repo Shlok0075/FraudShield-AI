@@ -137,3 +137,34 @@ def test_build_end_to_end_is_deterministic(tmp_path):
     assert "isFlaggedFraud" not in df.columns and "newbalanceOrig" not in df.columns
     train = pd.read_csv(tmp_path / "o1" / "features_train.csv.gz")
     assert "is_fraud" in train.columns and train.ts.max() < m1["split"]["train_end_ts"]
+
+
+# ---- balance feature group -------------------------------------------------------------------
+def test_balance_features_legit_vs_drain():
+    e = FeatureEngine(groups=("core", "balance"))
+    ok = e.features(tx(0, amount=100.0, old_org=1000.0, new_org=900.0, old_dest=50.0, new_dest=150.0))
+    assert ok["orig_balance_error"] == 0 and ok["dest_balance_error"] == 0
+    assert ok["orig_emptied"] == 0 and ok["dest_balance_unchanged"] == 0
+    bad = e.features(tx(1, amount=500.0, old_org=500.0, new_org=0.0, old_dest=0.0, new_dest=0.0))
+    assert bad["orig_emptied"] == 1 and bad["dest_balance_unchanged"] == 1
+    assert bad["dest_balance_error"] == 500.0 and bad["amount_to_orig_balance"] == pytest.approx(500 / 501)
+
+
+def test_balance_features_missing_are_nan_and_default_group_unchanged():
+    f = FeatureEngine(groups=("core", "balance")).features(tx(0))
+    assert np.isnan(f["orig_balance_error"]) and np.isnan(f["dest_balance_unchanged"])
+    assert "orig_emptied" not in FeatureEngine().features(tx(0))        # core-only output is unchanged
+
+
+def test_build_with_balance_flag(tmp_path):
+    raw = make_paysim_like(n=3000, seed=1)
+    raw["oldbalanceOrg"] = 1000.0
+    raw["newbalanceOrig"] = np.where(raw["isFraud"] == 1, 0.0, 1000.0 - raw["amount"])
+    csv = tmp_path / "ps.csv"
+    raw.to_csv(csv, index=False)
+    meta = build(csv, tmp_path / "out", balance=True)
+    assert meta["balance_features"] is True and "oldbalanceOrg" not in meta["dropped_columns"]
+    tr = pd.read_csv(tmp_path / "out" / "features_train.csv.gz")
+    assert "orig_balance_error" in tr.columns and "orig_emptied" in tr.columns
+    meta0 = build(csv, tmp_path / "out0")
+    assert meta0["balance_features"] is False

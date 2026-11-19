@@ -30,22 +30,28 @@ from .split import time_split
 def engineer(df: pd.DataFrame, engine: FeatureEngine) -> pd.DataFrame:
     """Run the SAME engine used at inference over the time-sorted frame."""
     rows = []
-    for ts, uid, cid, amt, typ, lab in zip(df["ts"].to_numpy(), df["user_id"].to_numpy(),
-                                           df["counterparty_id"].to_numpy(), df["amount"].to_numpy(),
-                                           df["txn_type"].to_numpy(), df["is_fraud"].to_numpy()):
-        rows.append(engine.process(Txn(float(ts), uid, cid, float(amt), typ), int(lab)))
+    bal = [df[c].to_numpy() for c in datasets.BALANCE_COLUMNS] if "old_org" in df.columns else None
+    for i, (ts, uid, cid, amt, typ, lab) in enumerate(zip(
+            df["ts"].to_numpy(), df["user_id"].to_numpy(), df["counterparty_id"].to_numpy(),
+            df["amount"].to_numpy(), df["txn_type"].to_numpy(), df["is_fraud"].to_numpy())):
+        extra = {}
+        if bal is not None:
+            extra = dict(old_org=float(bal[0][i]), new_org=float(bal[1][i]),
+                         old_dest=float(bal[2][i]), new_dest=float(bal[3][i]))
+        rows.append(engine.process(Txn(float(ts), uid, cid, float(amt), typ, **extra), int(lab)))
     feats = pd.DataFrame(rows)
     return feats[engine.feature_names + CATEGORICAL_FEATURES]
 
 
 def build(input_path: Path, out_dir: Path, seed: int = 42, max_rows: int | None = None,
-          label_delay_s: float = 86400, train_frac: float = 0.6, val_frac: float = 0.2) -> dict:
+          label_delay_s: float = 86400, train_frac: float = 0.6, val_frac: float = 0.2,
+          balance: bool = False) -> dict:
     np.random.seed(seed)   # pipeline is deterministic; seed is recorded for the model-training stage
     out_dir.mkdir(parents=True, exist_ok=True)
-    df = datasets.load_paysim(input_path, max_rows=max_rows)
+    df = datasets.load_paysim(input_path, max_rows=max_rows, include_balances=balance)
     prof = datasets.profile(df)
 
-    engine = FeatureEngine(groups=("core",), label_delay_s=label_delay_s,
+    engine = FeatureEngine(groups=("core", "balance") if balance else ("core",), label_delay_s=label_delay_s,
                            prior_fraud_rate=float(df["is_fraud"].iloc[: int(len(df) * train_frac)].mean()))
     # NOTE: prior_fraud_rate above is computed from the TRAIN portion only (first train_frac of rows in time).
     feats = engineer(df, engine)
@@ -71,7 +77,9 @@ def build(input_path: Path, out_dir: Path, seed: int = 42, max_rows: int | None 
         "dataset": "PaySim", "source_file": input_path.name,
         "source_sha256": datasets.sha256_file(input_path), "max_rows": max_rows,
         "is_full_benchmark": max_rows is None, "seed": seed,
-        "dropped_columns": datasets.PAYSIM_DROPPED, "label_delay_s": label_delay_s,
+        "dropped_columns": [c for c in datasets.PAYSIM_DROPPED
+                            if not (balance and c != "isFlaggedFraud")],
+        "balance_features": balance, "label_delay_s": label_delay_s,
         "split": {"method": "chronological on timestamp", "train_frac": train_frac,
                   "val_frac": val_frac, **cuts, "stats": split_stats},
         "profile": prof,
@@ -90,9 +98,11 @@ def main():
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--max-rows", type=int, default=None)
+    ap.add_argument("--balance", action="store_true",
+                    help="keep PaySim balance columns as the 'balance' feature group (easier, bank-realistic)")
     ap.add_argument("--label-delay-hours", type=float, default=24.0)
     a = ap.parse_args()
-    meta = build(a.input, a.out, a.seed, a.max_rows, a.label_delay_hours * 3600)
+    meta = build(a.input, a.out, a.seed, a.max_rows, a.label_delay_hours * 3600, balance=a.balance)
     print(json.dumps({k: meta[k] for k in ("is_full_benchmark", "split")}, indent=2))
 
 

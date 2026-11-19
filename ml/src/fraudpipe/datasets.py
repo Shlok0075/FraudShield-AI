@@ -10,10 +10,14 @@ PAYSIM_REQUIRED = ["step", "type", "amount", "nameOrig", "nameDest", "isFraud"]
 # 2024-01-01 00:00 UTC is a Monday. PaySim's `step` is "1 hour of simulated time"; the calendar
 # alignment is an ASSUMPTION so hour_of_day / day_of_week are simulated-clock values.
 PAYSIM_EPOCH = 1_704_067_200
-# Dropped on purpose: post-transaction balances are generated from the fraud label
-# (fraud drains the account) and isFlaggedFraud is the output of a rule system.
+# Dropped BY DEFAULT: PaySim's balance columns are simulator artefacts (fraud rows leave the
+# balance arithmetic inconsistent and drain the sender), which makes the benchmark trivially easy.
+# In a real bank these balances ARE known at scoring time, so build_dataset --balance keeps them
+# as the optional "balance" feature group. isFlaggedFraud is the output of a rule system and is
+# always dropped.
 PAYSIM_DROPPED = ["oldbalanceOrg", "newbalanceOrig", "oldbalanceDest", "newbalanceDest", "isFlaggedFraud"]
 
+BALANCE_COLUMNS = ["old_org", "new_org", "old_dest", "new_dest"]
 STD_COLUMNS = ["ts", "user_id", "counterparty_id", "amount", "txn_type", "is_fraud"]
 
 
@@ -25,7 +29,7 @@ def sha256_file(path: Path, chunk: int = 1 << 20) -> str:
     return h.hexdigest()
 
 
-def load_paysim(path: str | Path, max_rows: int | None = None) -> pd.DataFrame:
+def load_paysim(path: str | Path, max_rows: int | None = None, include_balances: bool = False) -> pd.DataFrame:
     """Load PaySim CSV -> standard frame sorted by time (stable, so original row order breaks ties)."""
     path = Path(path)
     if not path.exists():
@@ -43,9 +47,14 @@ def load_paysim(path: str | Path, max_rows: int | None = None) -> pd.DataFrame:
         "txn_type": raw["type"].astype(str),
         "is_fraud": raw["isFraud"].astype("int8"),
     })
+    if include_balances:
+        for out, src in (("old_org", "oldbalanceOrg"), ("new_org", "newbalanceOrig"),
+                         ("old_dest", "oldbalanceDest"), ("new_dest", "newbalanceDest")):
+            df[out] = raw[src].astype("float64")
     if df["amount"].lt(0).any():
         raise ValueError("negative amounts found")
-    return df.sort_values("ts", kind="stable").reset_index(drop=True)[STD_COLUMNS]
+    cols = STD_COLUMNS + (BALANCE_COLUMNS if include_balances else [])
+    return df.sort_values("ts", kind="stable").reset_index(drop=True)[cols]
 
 
 def profile(df: pd.DataFrame) -> dict:

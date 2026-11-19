@@ -6,7 +6,10 @@
 - **SHA-256:** `16910f90577b0d981bf8ff289714510bb89bc71bff7d3f220f024e287e4eea6b`
 - **Rows:** 6,362,620 | **Fraud:** 8,213 (0.129%)
 - **Dropped columns:** `oldbalanceOrg`, `newbalanceOrig`, `oldbalanceDest`, `newbalanceDest`, `isFlaggedFraud`
-  (post-transaction balances are derived from the fraud label; `isFlaggedFraud` is a rule-system output, not ground truth.)
+  by default. The balance columns are PaySim *simulator artefacts* (fraud rows drain the sender and leave the
+  balance arithmetic inconsistent), so keeping them makes the benchmark close to trivial. `isFlaggedFraud` is a
+  rule-system output, not ground truth. In a real bank the balances ARE known at scoring time, so
+  `build_dataset --balance` keeps them as the optional `balance` feature group (see below).
 
 ## Feature contract
 
@@ -45,8 +48,14 @@ Cut-offs are on timestamp quantiles; no timestamp is shared between splits.
 | Isolation Forest (unsup.)    | 0.0319  | 0.8676  | 0.0722    | 0.1235 | 0.0911 | 0.0052  | 0.8765  |
 
 Best PR-AUC on PaySim: **XGBoost + class_weight (0.5203)**, at the balanced threshold (0.95) selected on
-validation. The tuned hybrid risk engine used by the live API is a separate artifact
-(`ml/models/live-v1/`) trained on the synthetic behavioral stream — it is **not** re-tuned on PaySim.
+validation. The live API model (`ml/models/live-v1/`) is trained on the same PaySim features with the same
+XGBoost settings (`ml/src/train_live_paysim.py`); its test PR-AUC is 0.5147 (ROC-AUC 0.9666).
+
+### Bug fixed (2026-11-19)
+The first live model scored only 0.3255 PR-AUC. Both the trainer and the API looked for one-hot columns
+`txn_type=CASH_OUT` etc., but the data carries a string `txn_type`, so those columns were silently 0 and the model
+never saw the transaction type (fraud occurs only in TRANSFER and CASH_OUT). Fixed in
+`train_live_paysim.align_columns` and `ModelService._matrix`, with a regression test.
 
 ## Reproducibility
 
@@ -69,3 +78,27 @@ Artifacts: `ml/models/experiments/paysim-v1/{experiment_results.json,model_compa
   later window.
 - These numbers are **public-dataset** results and are reported separately from the synthetic
   behavioral benchmark in `docs/final_checklist.md`. Neither is a substitute for the other.
+
+## Why accuracy plateaus without balance features
+
+- 99.74% of test transactions are the user's first, and only 0.28% of fraud rows have any prior history, so
+  the behavioural features (velocity, z-score, time since last transaction) are almost constant on PaySim.
+  The model effectively sees amount, transaction type, hour and counterparty fraud rate.
+- Fraud only occurs in TRANSFER and CASH_OUT.
+- Fraud rate is 0.08% in train, 0.06% in validation and 0.33% in test (fraud is bursty in simulated time), so
+  validation-selected thresholds transfer imperfectly.
+
+## Balance feature group (optional)
+
+```bash
+cd ml/src
+python -m fraudpipe.build_dataset --input ../data/raw/PS_20174392719_1491204439457_log.csv \
+    --out ../data/processed/paysim-v1-balance --seed 42 --balance
+python -m fraudpipe.experiments --data ../data/processed/paysim-v1-balance \
+    --out ../models/experiments/paysim-v1-balance --seed 42
+```
+
+Adds `orig_balance_error`, `dest_balance_error`, `orig_emptied`, `dest_balance_unchanged`,
+`amount_to_orig_balance`, `orig_balance_missing`. Report BOTH tables: without balances is the realistic
+behavioural benchmark; with balances is the number comparable to most published PaySim results.
+Results for the balance run are not included here until it has been run on the full CSV.

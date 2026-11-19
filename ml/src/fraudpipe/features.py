@@ -17,6 +17,10 @@ Leakage rules enforced here (and covered by tests):
 Feature groups
   core        : needs only user, counterparty, amount, timestamp  (works on PaySim)
   device_geo  : needs device_id and lat/lon (live/simulated data only; PaySim has neither)
+  balance     : needs the origin/destination balances before and after the transaction. A bank
+                always knows these at scoring time, so this group is legitimate in production; on
+                PaySim they are simulator artefacts that make the benchmark much easier (see
+                docs/paysim_evaluation.md). Stateless: computed from the transaction row only.
 """
 from __future__ import annotations
 
@@ -49,7 +53,11 @@ DEVICE_GEO_FEATURES = [
     "location_change", "distance_from_prev_km", "implied_speed_kmh",
 ]
 CATEGORICAL_FEATURES = ["txn_type"]
-GROUPS = {"core": CORE_FEATURES, "device_geo": DEVICE_GEO_FEATURES}
+BALANCE_FEATURES = [
+    "orig_balance_error", "dest_balance_error", "orig_emptied",
+    "dest_balance_unchanged", "amount_to_orig_balance", "orig_balance_missing",
+]
+GROUPS = {"core": CORE_FEATURES, "device_geo": DEVICE_GEO_FEATURES, "balance": BALANCE_FEATURES}
 
 FEATURE_DESCRIPTIONS = {
     "amount": "Transaction amount.",
@@ -78,6 +86,12 @@ FEATURE_DESCRIPTIONS = {
     "location_change": f"1 if previous location is > {GEO_CHANGE_KM:.0f} km away (device_geo group).",
     "distance_from_prev_km": "Haversine km from user's previous txn location (device_geo group).",
     "implied_speed_kmh": "distance_from_prev_km / hours since previous txn (device_geo group).",
+    "orig_balance_error": "old_org - amount - new_org. 0 when the sender's balance moved by exactly the amount (balance group).",
+    "dest_balance_error": "old_dest + amount - new_dest. 0 when the receiver was credited exactly the amount (balance group).",
+    "orig_emptied": "1 if the sender's account was drained to 0 by this transaction (balance group).",
+    "dest_balance_unchanged": "1 if the receiver's balance did not change although amount > 0 (balance group).",
+    "amount_to_orig_balance": "amount / (old_org + 1): share of the sender's balance being moved (balance group).",
+    "orig_balance_missing": "1 if the sender's opening balance is 0 (balance group).",
     "txn_type": "Categorical transaction type (one-hot encoded in preprocessing).",
 }
 
@@ -92,6 +106,10 @@ class Txn:
     device_id: str | None = None
     lat: float | None = None
     lon: float | None = None
+    old_org: float | None = None     # sender balance before / after (balance group)
+    new_org: float | None = None
+    old_dest: float | None = None    # receiver balance before / after (balance group)
+    new_dest: float | None = None
 
 
 class _UserState:
@@ -228,7 +246,26 @@ class FeatureEngine:
         f["counterparty_fraud_rate_prior"] = self._rate(c.lab_fraud, c.lab_n) if c else self.prior_fraud_rate
         if "device_geo" in self.groups:
             self._device_geo(t, u, f)
+        if "balance" in self.groups:
+            self._balance(t, f)
         return f
+
+    @staticmethod
+    def _balance(t: Txn, f: dict) -> None:
+        nan = float("nan")
+        if t.old_org is None or t.new_org is None:
+            f.update(orig_balance_error=nan, orig_emptied=nan, amount_to_orig_balance=nan,
+                     orig_balance_missing=nan)
+        else:
+            f["orig_balance_error"] = t.old_org - t.amount - t.new_org
+            f["orig_emptied"] = int(t.new_org == 0 and t.old_org > 0)
+            f["amount_to_orig_balance"] = t.amount / (t.old_org + 1.0)
+            f["orig_balance_missing"] = int(t.old_org == 0)
+        if t.old_dest is None or t.new_dest is None:
+            f.update(dest_balance_error=nan, dest_balance_unchanged=nan)
+        else:
+            f["dest_balance_error"] = t.old_dest + t.amount - t.new_dest
+            f["dest_balance_unchanged"] = int(t.new_dest == t.old_dest and t.amount > 0)
 
     def _device_geo(self, t: Txn, u, f: dict) -> None:
         nan = float("nan")
