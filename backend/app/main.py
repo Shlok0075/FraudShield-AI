@@ -116,9 +116,16 @@ async def lifespan(app: FastAPI):
         from app.services.live_feed import live_feed
         live_feed.start()
 
+    if settings.AUTO_INVESTIGATE_ENABLED:
+        from app.services.auto_investigator import auto_investigator
+        auto_investigator.start()
+
     try:
         yield
     finally:
+        if settings.AUTO_INVESTIGATE_ENABLED:
+            from app.services.auto_investigator import auto_investigator
+            await auto_investigator.stop()
         if settings.LIVE_FEED_ENABLED:
             from app.services.live_feed import live_feed
             await live_feed.stop()

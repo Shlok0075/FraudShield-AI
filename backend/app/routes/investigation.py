@@ -16,7 +16,10 @@ from app.auth.dependencies import require_role
 from app.database import get_db
 from app.models.fraud_alert import FraudAlert
 from app.models.case import FraudCase
-from app.services.investigation_service import run_investigation, SYSTEM_USER_ID
+from sqlalchemy import func
+from app.config.settings import settings
+from app.services.auto_investigator import auto_investigator, sweep_once
+from app.services.investigation_service import run_investigation
 
 router = APIRouter(prefix="/investigation", tags=["investigation"])
 
@@ -24,21 +27,39 @@ router = APIRouter(prefix="/investigation", tags=["investigation"])
 @router.post("/auto")
 def auto_investigate_open_alerts(
     request: Request,
+    limit: int = 200,
     db: Session = Depends(get_db),
     current_user=Depends(require_role(["admin"])),
 ):
-    """Auto-investigate all open alerts (batch)."""
-    open_alerts = db.query(FraudAlert).filter(FraudAlert.status == "open").all()
-    results = []
-    for alert in open_alerts:
-        try:
-            result = run_investigation(db, alert.id, emit=True)
-            results.append(result)
-        except Exception as exc:  # pragma: no cover - best effort
-            results.append({"alert_id": alert.id, "error": str(exc)})
+    """Run one sweep now: investigate open alerts (up to `limit`) and escalate stale cases."""
+    return sweep_once(db, limit=max(1, min(limit, 1000)), min_age_s=0)
+
+
+@router.get("/stats")
+def investigation_stats(
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role(["admin", "analyst"])),
+):
+    """How much the automation is doing, and how often analysts overrule it.
+
+    `analyst_overrides` counts cases whose automatic verdict a human later reversed:
+    an auto-cleared case reopened as confirmed fraud is the number to watch.
+    """
+    by_decision = dict(db.query(FraudCase.decision, func.count(FraudCase.id))
+                       .group_by(FraudCase.decision).all())
+    by_alert = dict(db.query(FraudAlert.status, func.count(FraudAlert.id))
+                    .group_by(FraudAlert.status).all())
+    auto_done = by_decision.get("auto_cleared", 0) + by_decision.get("auto_blocked", 0)
+    human_done = by_decision.get("confirmed_fraud", 0) + by_decision.get("false_positive", 0)
     return {
-        "investigated": len(results),
-        "results": results,
+        "cases_by_decision": {str(k or "none"): v for k, v in by_decision.items()},
+        "alerts_by_status": by_alert,
+        "auto_handled": auto_done,
+        "analyst_decided": human_done,
+        "open_alerts_waiting": by_alert.get("open", 0),
+        "sweeper": auto_investigator.status(),
+        "policy": {"auto_resolve_enabled": settings.AUTO_RESOLVE_ENABLED,
+                   "shadow_mode": settings.AUTO_RESOLVE_SHADOW},
     }
 
 
@@ -54,5 +75,5 @@ def investigate_alert(
     if alert is None:
         raise HTTPException(status_code=404, detail={"error": {"code": "NOT_FOUND", "message": "Alert not found"}})
 
-    result = run_investigation(db, alert_id, emit=True)
+    result = run_investigation(db, alert_id, emit=True, force=True)
     return result

@@ -43,6 +43,20 @@ class Settings(BaseSettings):
     LIVE_FEED_INTERVAL_SECONDS: float = 5.0
     LIVE_FEED_BURST: int = 3
 
+    # --- Automated investigation ---
+    # AUTO_RESOLVE_ENABLED=false: the engine still investigates and writes its report, but every
+    #   alert is escalated to an analyst (nothing is closed or blocked automatically).
+    # AUTO_RESOLVE_SHADOW=true: same, but the note records what the engine WOULD have done, so you
+    #   can compare against analyst decisions before trusting it.
+    AUTO_RESOLVE_ENABLED: bool = True
+    AUTO_RESOLVE_SHADOW: bool = False
+    # Background sweeper: investigates alerts the inline path missed or that failed.
+    AUTO_INVESTIGATE_ENABLED: bool = True
+    AUTO_INVESTIGATE_INTERVAL_SECONDS: float = 30.0
+    AUTO_INVESTIGATE_BATCH: int = 50
+    # Open cases nobody has touched for this long are bumped to high priority.
+    AUTO_ESCALATE_AFTER_HOURS: float = 4.0
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

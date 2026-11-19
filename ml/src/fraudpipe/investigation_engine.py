@@ -20,9 +20,17 @@ from typing import Any
 @dataclass
 class InvestigationConfig:
     """Thresholds for auto-decision."""
-    auto_block_confidence: int = 85    # >= this → auto-block, close case
-    auto_clear_confidence: int = 30    # <= this → auto-clear, close case
-    # Between these → REVIEW for human analyst
+    auto_block_confidence: int = 85    # weighted multi-signal confidence >= this -> auto-block
+    # Decision guards (all signals are 0..1).
+    auto_block_ml: float = 0.90        # model this sure + one corroborating signal -> auto-block
+    corroborate_signal: float = 0.50   # another signal (graph/anomaly/rules/behaviour) at/above this corroborates
+    strong_check_confidence: int = 60  # a passed automated check this strong also corroborates
+    auto_clear_max_signal: float = 0.20  # EVERY signal must be below this for an auto-clear
+    # Anything in between goes to a human analyst.
+    # NOTE: a weighted AVERAGE alone is not safe for auto-clearing. The model's own score is only
+    # 15% of it, so a transaction the model rated 0.99 fraud with nothing else firing averaged 15
+    # and was auto-CLEARED. Clearing now needs every signal low, and a flagged transaction is
+    # never cleared.
 
     # Evidence weights (must sum to 100)
     graph_risk_weight: int = 25
@@ -120,13 +128,28 @@ class InvestigationEngine:
 
         total_weight = sum(w for _, _, w in evidence_signals if w > 0)
         weighted_sum = sum(s * w for _, s, w in evidence_signals if w > 0)
-        confidence = int(round(100.0 * weighted_sum / total_weight)) if total_weight > 0 else 0
+        weighted = int(round(100.0 * weighted_sum / total_weight)) if total_weight > 0 else 0
+        weighted = max(0, min(100, weighted))
+
+        # Confidence is the stronger of the blended average and the single strongest signal, so one
+        # very confident detector is not averaged away by four quiet ones.
+        present = [s for _, s, _ in evidence_signals]
+        peak = max(present) if present else 0.0
+        confidence = max(weighted, int(round(100 * peak)))
         confidence = max(0, min(100, confidence))
 
-        # 3. Auto-decision
-        if confidence >= self.cfg.auto_block_confidence:
+        # 3. Auto-decision. Only AUTO_CLEAR and AUTO_BLOCK act without a human; both need
+        # agreement, and a missing prediction can never auto-clear.
+        failed = [c for c in checks if c.passed]
+        corroborating = sum(1 for _, s, _ in evidence_signals
+                            if s >= self.cfg.corroborate_signal) - (1 if (ml_prob or 0) >= self.cfg.corroborate_signal else 0)
+        corroborating += sum(1 for c in failed if c.confidence >= self.cfg.strong_check_confidence)
+        if ml_prob is not None and ml_prob >= self.cfg.auto_block_ml and corroborating >= 1:
             decision = "AUTO_BLOCK"
-        elif confidence <= self.cfg.auto_clear_confidence:
+        elif weighted >= self.cfg.auto_block_confidence:
+            decision = "AUTO_BLOCK"
+        elif (ml_prob is not None and peak < self.cfg.auto_clear_max_signal
+              and not triggered_rules and not failed):
             decision = "AUTO_CLEAR"
         else:
             decision = "REVIEW"
@@ -355,9 +378,9 @@ class InvestigationEngine:
         lines.append("-" * 30)
         if decision == "AUTO_BLOCK":
             lines.append("  High-confidence fraud indicators detected across multiple signals.")
-            lines.append("  Transaction automatically blocked and case closed as fraudulent.")
+            lines.append("  Transaction automatically blocked. The case stays open: confirming fraud is an analyst decision.")
         elif decision == "AUTO_CLEAR":
-            lines.append("  Insufficient fraud evidence across all signals.")
+            lines.append("  Every signal is low and no rule or check fired.")
             lines.append("  Transaction automatically cleared and case closed as legitimate.")
         else:
             lines.append("  Mixed signals — insufficient confidence for automatic decision.")
@@ -365,9 +388,9 @@ class InvestigationEngine:
         lines.append("")
         lines.append("RECOMMENDED ACTION:")
         if decision == "AUTO_BLOCK":
-            lines.append("  Block transaction, mark alert as resolved (fraud confirmed).")
+            lines.append("  Keep the transaction blocked and have an analyst confirm or overturn it.")
         elif decision == "AUTO_CLEAR":
-            lines.append("  Allow transaction, mark alert as resolved (false positive).")
+            lines.append("  Allow transaction, close the alert as a false positive.")
         else:
             lines.append("  Assign case to analyst for manual investigation.")
 
