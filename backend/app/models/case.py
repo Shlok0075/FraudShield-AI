@@ -5,7 +5,7 @@ from app.database import Base
 
 class FraudCase(Base):
     __tablename__ = 'fraud_cases'
-    __table_args__ = (Index('ix_fraud_cases_status','status'), Index('ix_fraud_cases_assignee','assigned_to'))
+    __table_args__ = (Index('ix_fraud_cases_status','status'), Index('ix_fraud_cases_assignee','assigned_to'), Index('ix_fraud_cases_updated_at','updated_at'))
     id: Mapped[int] = mapped_column(primary_key=True)
     alert_id: Mapped[int] = mapped_column(ForeignKey('fraud_alerts.id'), unique=True, nullable=False)
     assigned_to: Mapped[int | None] = mapped_column(ForeignKey('users.id'), nullable=True)

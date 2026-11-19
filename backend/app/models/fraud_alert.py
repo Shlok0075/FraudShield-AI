@@ -9,7 +9,8 @@ from app.database import Base
 class FraudAlert(Base):
     """PART 11.7. status in {open, reviewed, false_positive, escalated, resolved}."""
     __tablename__ = "fraud_alerts"
-    __table_args__ = (Index("ix_fraud_alerts_status", "status"),)
+    __table_args__ = (Index("ix_fraud_alerts_status", "status"),
+                      Index("ix_fraud_alerts_created_at", "created_at"))
 
     id: Mapped[int] = mapped_column(primary_key=True)
     transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"))

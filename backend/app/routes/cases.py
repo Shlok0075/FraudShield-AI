@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user, require_role
 from app.database import get_db
@@ -11,15 +11,31 @@ from app.services.audit_service import log_action
 
 router = APIRouter(prefix='/cases', tags=['cases'])
 
-def _case_dict(db, c):
-    notes = db.query(CaseNote).filter(CaseNote.case_id == c.id).order_by(CaseNote.created_at.asc()).all()
-    return {'id':c.id,'alert_id':c.alert_id,'assigned_to':c.assigned_to,'status':c.status,'priority':c.priority,'decision':c.decision,'summary':c.summary,'created_at':c.created_at,'updated_at':c.updated_at,'closed_at':c.closed_at,'notes':[{'id':n.id,'author_id':n.author_id,'note':n.note,'created_at':n.created_at} for n in notes]}
+def _note_dict(n):
+    return {'id':n.id,'author_id':n.author_id,'note':n.note,'created_at':n.created_at}
+
+def _case_dict(db, c, notes=None):
+    """`notes` lets list views pass notes they already fetched in ONE batched query."""
+    if notes is None:
+        notes = db.query(CaseNote).filter(CaseNote.case_id == c.id).order_by(CaseNote.created_at.asc()).all()
+    return {'id':c.id,'alert_id':c.alert_id,'assigned_to':c.assigned_to,'status':c.status,'priority':c.priority,'decision':c.decision,'summary':c.summary,'created_at':c.created_at,'updated_at':c.updated_at,'closed_at':c.closed_at,'notes':[_note_dict(n) for n in notes]}
 
 @router.get('')
-def list_cases(status_filter: str|None=None, db:Session=Depends(get_db), current_user:User=Depends(require_role(['admin','analyst']))):
+def list_cases(status_filter: str|None=None,
+               limit: int = Query(100, ge=1, le=500), offset: int = Query(0, ge=0),
+               db:Session=Depends(get_db), current_user:User=Depends(require_role(['admin','analyst']))):
     q=db.query(FraudCase)
     if status_filter: q=q.filter(FraudCase.status==status_filter)
-    return [_case_dict(db,c) for c in q.order_by(FraudCase.updated_at.desc()).all()]
+    cases=q.order_by(FraudCase.updated_at.desc(), FraudCase.id.desc()).offset(offset).limit(limit).all()
+    # One query for every case's notes instead of one per case. This used to be an N+1: 5,000
+    # cases meant 5,002 SQL round trips (1.5s even against a local database, many seconds
+    # with a hosted Postgres where each round trip costs milliseconds).
+    by_case: dict[int, list] = {c.id: [] for c in cases}
+    if by_case:
+        for n in (db.query(CaseNote).filter(CaseNote.case_id.in_(by_case))
+                  .order_by(CaseNote.created_at.asc(), CaseNote.id.asc()).all()):
+            by_case[n.case_id].append(n)
+    return [_case_dict(db, c, by_case[c.id]) for c in cases]
 
 @router.post('', status_code=201)
 def create_case(payload:CaseCreate, request:Request, db:Session=Depends(get_db), current_user:User=Depends(require_role(['admin','analyst']))):

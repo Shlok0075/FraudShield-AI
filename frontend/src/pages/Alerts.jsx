@@ -2,7 +2,7 @@
  * FraudShield AI - Alerts page (Week 10 Day 4 / Week 12)
  * =========================================================
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../services/api'
 import { getSocket } from '../services/socket'
@@ -10,25 +10,57 @@ import RiskBadge from '../components/RiskBadge'
 
 const STATUS_OPTIONS = ['open', 'reviewed', 'false_positive', 'escalated', 'resolved']
 
+const PAGE_SIZE = 100          // rows fetched per request (server max is 500)
+const REFRESH_MIN_MS = 3000    // coalesce bursts of socket events into one reload
+
 export default function Alerts() {
   const [alerts, setAlerts] = useState([])
   const [statusFilter, setStatusFilter] = useState('')
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const loadedCount = useRef(0)
+  const refreshTimer = useRef(null)
 
+  const filterParams = () => (statusFilter ? { status_filter: statusFilter } : {})
+
+  // Reload what the user already has on screen (at least one page), not the whole table.
   async function load() {
-    const { data } = await api.get('/alerts', { params: statusFilter ? { status_filter: statusFilter } : {} })
+    const limit = Math.min(500, Math.max(PAGE_SIZE, loadedCount.current))
+    const { data } = await api.get('/alerts', { params: { ...filterParams(), limit, offset: 0 } })
+    loadedCount.current = data.length
     setAlerts(data)
+    setHasMore(data.length === limit)
   }
 
-  useEffect(() => { load() }, [statusFilter])
+  async function loadMore() {
+    setLoadingMore(true)
+    try {
+      const { data } = await api.get('/alerts', {
+        params: { ...filterParams(), limit: PAGE_SIZE, offset: loadedCount.current },
+      })
+      loadedCount.current += data.length
+      setAlerts((prev) => [...prev, ...data])
+      setHasMore(data.length === PAGE_SIZE)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  useEffect(() => { loadedCount.current = 0; load() }, [statusFilter])
 
   useEffect(() => {
     const socket = getSocket()
-    const refresh = () => load()
+    // The feed raises alerts continuously; reloading on every event hammered the API.
+    const refresh = () => {
+      if (refreshTimer.current) return
+      refreshTimer.current = setTimeout(() => { refreshTimer.current = null; load() }, REFRESH_MIN_MS)
+    }
     socket.on('new_alert', refresh)
     socket.on('alert_updated', refresh)
     return () => {
       socket.off('new_alert', refresh)
       socket.off('alert_updated', refresh)
+      if (refreshTimer.current) { clearTimeout(refreshTimer.current); refreshTimer.current = null }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter])
@@ -92,6 +124,14 @@ export default function Alerts() {
           </tbody>
         </table>
       </div>
+      {hasMore && (
+        <div className="text-center">
+          <button onClick={loadMore} disabled={loadingMore}
+                  className="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-sm text-white hover:bg-slate-700 disabled:opacity-50">
+            {loadingMore ? 'Loading…' : 'Load more'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
