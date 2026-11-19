@@ -17,7 +17,8 @@ from app.database import get_db
 from app.ml.model_service import ModelService
 from app.models.device import Device
 from app.models.fraud_alert import FraudAlert
-from app.models.case import FraudCase
+from app.models.case import CaseNote, FraudCase
+from app.routes.cases import _investigation, queue_of
 from app.models.fraud_prediction import FraudPrediction
 from app.models.transaction import Transaction
 from app.models.user import User
@@ -75,6 +76,35 @@ def list_transactions(
     return TransactionListResponse(items=items, total=total, page=page, page_size=page_size)
 
 
+_OUTCOMES = {
+    "auto_cleared": ("cleared", "Cleared automatically", "Every signal was low, so the system closed the alert as a false positive."),
+    "auto_blocked": ("blocked", "Blocked automatically", "The system blocked this transaction. An analyst confirms fraud or overturns the block."),
+    "needs_review": ("review", "Waiting for an analyst", "The system could not decide on its own. It is in the Needs review queue."),
+    "closed": ("closed", "Decided by an analyst", "An analyst made the final decision."),
+}
+
+
+def automated_outcome(db: Session, txn: Transaction) -> dict:
+    """What the system did with this transaction, so nobody has to pick a status by hand."""
+    alert = db.query(FraudAlert).filter(FraudAlert.transaction_id == txn.id).first()
+    if alert is None:
+        return {"state": "allowed", "label": "Allowed automatically",
+                "detail": "No alert was raised, so no action is needed.",
+                "alert_id": None, "case_id": None, "queue": None, "can_decide": False, "investigation": None}
+    case = db.query(FraudCase).filter(FraudCase.alert_id == alert.id).first()
+    if case is None:
+        return {"state": "pending", "label": "Investigation pending",
+                "detail": "The automated investigator will pick this up on its next sweep.",
+                "alert_id": alert.id, "case_id": None, "queue": None, "can_decide": False, "investigation": None}
+    queue = queue_of(case.decision, case.status)
+    state, label, detail = _OUTCOMES[queue]
+    if queue == "closed" and case.decision:
+        label = f"Decided by an analyst: {case.decision.replace('_', ' ')}"
+    notes = db.query(CaseNote).filter(CaseNote.case_id == case.id).order_by(CaseNote.created_at.asc(), CaseNote.id.asc()).all()
+    return {"state": state, "label": label, "detail": detail, "alert_id": alert.id, "case_id": case.id,
+            "queue": queue, "can_decide": queue != "closed", "investigation": _investigation(notes)}
+
+
 @router.get("/{transaction_id}/detail")
 def transaction_detail(
     transaction_id: int,
@@ -112,6 +142,7 @@ def transaction_detail(
             "explanation": prediction.explanation,
         } if prediction else None,
         "related_transactions": [TransactionOut.model_validate(r).model_dump() for r in related],
+        "outcome": automated_outcome(db, txn),
         "user_recent_history_count": len(related),
     }
 
