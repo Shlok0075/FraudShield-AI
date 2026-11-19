@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import case as sql_case, func
@@ -70,6 +71,38 @@ def _context(db, cases):
     txns = {t.id: t for t in db.query(Transaction).filter(Transaction.id.in_(tx_ids)).all()} if tx_ids else {}
     return alerts, txns
 
+_REPORT_MARK = 'AUTOMATED INVESTIGATION REPORT'
+
+def parse_report(text: str) -> dict:
+    """Structure the engine's text report so the UI can show it without making the analyst read a wall of text."""
+    def section(name):
+        m = re.search(rf'^{name}:\n-+\n(.*?)(?:\n\n|\Z)', text, re.S | re.M)
+        return [l.strip() for l in m.group(1).splitlines() if l.strip()] if m else []
+    conf = re.search(r'Investigation Confidence:\s*(\d+)%', text)
+    risk = re.search(r'Risk Level:\s*(\w+)', text)
+    when = re.search(r'Investigated At:\s*(\S+)', text)
+    signals = []
+    for l in section('EVIDENCE SIGNALS'):
+        m = re.match(r'[•*-]\s*(.+?):\s*(\d+)%', l)
+        if m: signals.append({'name': m.group(1), 'score': int(m.group(2))})
+    checks = [re.sub(r'^\[FRAUD\]\s*', '', l) for l in section('AUTOMATED CHECKS') if l.startswith('[FRAUD]')]
+    rec = re.search(r'^RECOMMENDED ACTION:\n(.*?)(?:\n\n|\Z)', text, re.S | re.M)
+    return {
+        'confidence': int(conf.group(1)) if conf else None,
+        'risk_level': risk.group(1) if risk else None,
+        'investigated_at': when.group(1) if when else None,
+        'signals': signals, 'checks': checks,
+        'reasoning': ' '.join(section('REASONING')),
+        'recommendation': rec.group(1).strip() if rec else None,
+    }
+
+def _investigation(notes):
+    """Latest automated report among the case notes (None when the case was never auto-investigated)."""
+    for n in reversed(notes):
+        if _REPORT_MARK in (n.note or ''):
+            return parse_report(n.note)
+    return None
+
 def _case_dict(db, c, notes=None, ctx=None):
     """`notes` / `ctx` let list views pass data they already fetched in batched queries."""
     if notes is None:
@@ -83,7 +116,8 @@ def _case_dict(db, c, notes=None, ctx=None):
             'transaction_id':alert.transaction_id if alert else None,
             'amount':float(txn.amount) if txn is not None else None,
             'currency':txn.currency if txn is not None else None,
-            'notes':[_note_dict(n) for n in notes]}
+            'investigation':_investigation(notes),
+            'notes':[_note_dict(n) for n in notes if _REPORT_MARK not in (n.note or '')]}
 
 @router.get('')
 def list_cases(status_filter: str|None=None,
@@ -147,6 +181,10 @@ def update_case(case_id:int,payload:CaseUpdate,request:Request,db:Session=Depend
     if not c: raise HTTPException(404,'Case not found')
     data=payload.model_dump(exclude_unset=True)
     for k,v in data.items(): setattr(c,k,v)
+    if data.get('decision') in ('confirmed_fraud','false_positive'):
+        c.status='closed'   # a human decision always closes the case; nobody has to set the status by hand
+    if c.assigned_to is None or ('decision' in data and c.assigned_to!=current_user.id):
+        c.assigned_to=current_user.id   # whoever acts on a case owns it
     if c.status=='closed' or c.decision in ('confirmed_fraud','false_positive'):
         c.closed_at=c.closed_at or datetime.now(timezone.utc)
     db.commit(); db.refresh(c)
