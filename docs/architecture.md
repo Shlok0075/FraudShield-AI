@@ -47,8 +47,8 @@ Three-tier modular monolith: the ML model lives **inside** the FastAPI process (
 ## 3. Authentication Flow
 
 User submits email+password → backend verifies bcrypt hash → issues a JWT (60 min, HS256) → frontend keeps the
-token **in memory** (not `localStorage`, to reduce XSS risk — session is lost on refresh, a documented tradeoff,
-see Week 9 Day 7) → every request sends `Authorization: Bearer <token>` → backend middleware/dependency decodes
+token in **`sessionStorage`** (survives a refresh, cleared when the tab closes or on logout/401, never in
+`localStorage`; the trade-off is that injected scripts could read it, so the app avoids `dangerouslySetInnerHTML` and tokens stay short-lived) → every request sends `Authorization: Bearer <token>` → backend middleware/dependency decodes
 the JWT and checks role against the route's requirement.
 
 ## 4. Role Flow Differences

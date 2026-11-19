@@ -5,8 +5,8 @@
  * from the token (a plain base64 decode of the JWT payload -- no signing
  * verification client-side; the backend is the source of truth).
  */
-import { createContext, useContext, useState, useCallback } from 'react'
-import api, { authToken } from '../services/api'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import api, { authToken, API_BASE_URL, UNAUTHORIZED_EVENT } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -19,14 +19,48 @@ function decodeRole(token) {
   }
 }
 
+/** A message a person can act on, instead of a bare "Login failed". */
+function describeLoginError(err) {
+  if (!err.response) {
+    const onLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    const apiIsLocal = /localhost|127\.0\.0\.1/.test(API_BASE_URL)
+    return !onLocalhost && apiIsLocal
+      ? `This site is trying to reach ${API_BASE_URL}, which only exists on your own computer. Set VITE_API_URL to the deployed backend address and rebuild.`
+      : `Can't reach the server at ${API_BASE_URL}. Check that the backend is running and that CORS allows this site.`
+  }
+  const status = err.response.status
+  if (status === 401) return 'Invalid email or password.'
+  if (status === 429) return 'Too many sign-in attempts. Wait a minute and try again.'
+  if (status === 422) return 'Enter a valid email address and password.'
+  if (status >= 500) return 'The server had a problem. Try again in a moment.'
+  return err.response.data?.error?.message || 'Sign-in failed.'
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
+  // True while a saved session is being checked, so protected pages wait instead of bouncing to /login.
+  const [restoring, setRestoring] = useState(() => !!authToken.get())
+
+  useEffect(() => {
+    let live = true
+    if (authToken.get()) {
+      api.get('/auth/me')
+        .then((me) => { if (live) setUser(me.data) })
+        .catch(() => { authToken.clear() })
+        .finally(() => { if (live) setRestoring(false) })
+    }
+    const expired = () => { setUser(null); setNotice('Your session expired. Please sign in again.') }
+    window.addEventListener(UNAUTHORIZED_EVENT, expired)
+    return () => { live = false; window.removeEventListener(UNAUTHORIZED_EVENT, expired) }
+  }, [])
 
   const login = useCallback(async (email, password) => {
     setLoading(true)
     setError(null)
+    setNotice(null)
     try {
       const { data } = await api.post('/auth/login', { email, password })
       authToken.set(data.access_token)
@@ -34,7 +68,7 @@ export function AuthProvider({ children }) {
       setUser(me.data)
       return true
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Login failed')
+      setError(describeLoginError(err))
       return false
     } finally {
       setLoading(false)
@@ -49,7 +83,7 @@ export function AuthProvider({ children }) {
   const isAuthenticated = !!user
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, error, isAuthenticated }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, error, notice, restoring, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   )
