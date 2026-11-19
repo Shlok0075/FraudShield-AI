@@ -17,16 +17,27 @@ export default function AuditLog() {
   const [actions, setActions] = useState([])
   const [action, setAction] = useState('')
   const [onlyAuth, setOnlyAuth] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [tick, setTick] = useState(0)
+
+  // The list of action names is loaded once, not re-queried on every page turn.
+  useEffect(() => { api.get('/audit/actions').then(({ data }) => setActions(data)).catch(() => {}) }, [])
 
   useEffect(() => {
+    let live = true
+    setLoading(true)
     api.get('/audit', {
       params: { page, page_size: PAGE_SIZE, action: onlyAuth ? 'auth*' : action || undefined },
     }).then(({ data }) => {
-      setItems(data.items)
-      setTotal(data.total)
-      setActions(data.actions)
-    })
-  }, [page, action, onlyAuth])
+      if (!live) return
+      setItems(data.items); setTotal(data.total); setError(null)
+    }).catch(() => { if (live) setError('Could not load the audit log.') })
+      .finally(() => { if (live) setLoading(false) })
+    return () => { live = false }
+  }, [page, action, onlyAuth, tick])
+
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   // Any filter change invalidates the current page number.
   const setFilter = (fn) => { fn(); setPage(1) }
@@ -34,7 +45,7 @@ export default function AuditLog() {
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-4">
       <h1 className="text-lg font-bold text-white">
-        Audit Log <span className="text-sm text-slate-500">({total} entries)</span>
+        Audit Log <span className="text-sm text-slate-500">({total.toLocaleString()} entries)</span>
       </h1>
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -59,9 +70,13 @@ export default function AuditLog() {
             <option key={a} value={a}>{a}</option>
           ))}
         </select>
+        <button onClick={() => setTick((t) => t + 1)} className="px-3 py-1 rounded border border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-600">
+          {loading ? 'Loading…' : 'Refresh'}
+        </button>
       </div>
+      {error && <div role="alert" className="text-sm text-red-300 bg-red-950/40 border border-red-900 rounded-lg px-3 py-2">{error}</div>}
 
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <div className={`bg-slate-900 border border-slate-800 rounded-xl overflow-hidden transition-opacity ${loading ? 'opacity-60' : ''}`}>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-slate-500 bg-slate-950/50">
@@ -96,7 +111,7 @@ export default function AuditLog() {
                 </tr>
               )
             })}
-            {items.length === 0 && (
+            {items.length === 0 && !loading && (
               <tr><td colSpan={6} className="py-6 px-4 text-center text-slate-500">No entries match this filter.</td></tr>
             )}
           </tbody>
@@ -106,8 +121,8 @@ export default function AuditLog() {
       <div className="flex justify-end items-center gap-2 text-sm">
         <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)}
           className="px-3 py-1 rounded bg-slate-800 disabled:opacity-40">Prev</button>
-        <span className="text-slate-500">Page {page}</span>
-        <button disabled={items.length < PAGE_SIZE} onClick={() => setPage((p) => p + 1)}
+        <span className="text-slate-500">{total === 0 && loading ? "Loading…" : `Page ${page} of ${pages}`}</span>
+        <button disabled={page >= pages} onClick={() => setPage((p) => p + 1)}
           className="px-3 py-1 rounded bg-slate-800 disabled:opacity-40">Next</button>
       </div>
     </div>

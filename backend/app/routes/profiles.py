@@ -17,12 +17,12 @@ def build_profile(db,user_id,fraud_ids=None):
     if not txns: return None
     amounts=[float(t.amount) for t in txns]
     txn_ids={t.id for t in txns}
-    # Restrict to THIS user's transactions. The previous version loaded every
-    # HIGH/CRITICAL prediction in the table, which is correct but meant the
-    # list endpoint re-scanned the whole prediction set once per user -- fatal
-    # at corpus scale.
+    # Fraud share of THIS user's transactions, counted with a join. Earlier versions loaded every
+    # HIGH/CRITICAL prediction in the table (once per user, then once per request).
     if fraud_ids is None:
-        fraud_ids={p.transaction_id for p in db.query(FraudPrediction.transaction_id).filter(FraudPrediction.risk_level.in_(['HIGH','CRITICAL'])).all()}
+        fraud_ids={row[0] for row in db.query(FraudPrediction.transaction_id)
+                   .join(Transaction,Transaction.id==FraudPrediction.transaction_id)
+                   .filter(Transaction.user_id==user_id,FraudPrediction.risk_level.in_(['HIGH','CRITICAL'])).all()}
     days=max(1,(txns[-1].created_at.date()-txns[0].created_at.date()).days+1)
     hours=Counter(t.created_at.hour for t in txns)
     locations=Counter(t.location or 'Unknown' for t in txns)
@@ -53,18 +53,17 @@ def profiles(limit:int=10,db:Session=Depends(get_db),current_user=Depends(requir
     The Intelligence page only ever shows the top handful, which is what this
     now computes.
 
-    Note the cost is dominated by the ranking GROUP BY (~6s over 6.35M distinct
-    groups); the per-user profile work itself is ~3ms. Keep `limit` small.
+    Ranking is limited to live transactions and each profile counts its own risky
+    transactions with a join, so the cost no longer depends on the corpus size.
     """
     limit=max(1,min(limit,200))
+    # Live traffic only (id >= 0): the PaySim training corpus has ~6.35M synthetic users and ranking
+    # them took ~6s, for profiles nobody investigates.
     ids=[row[0] for row in db.query(Transaction.user_id)
-         .filter(Transaction.user_id.is_not(None))
+         .filter(Transaction.user_id.is_not(None), Transaction.id>=0)
          .group_by(Transaction.user_id)
          .order_by(func.count(Transaction.id).desc())
          .limit(limit).all()]
     if not ids: return []
-    # Hoisted out of the loop: one scan, reused by every profile.
-    fraud_ids={row[0] for row in db.query(FraudPrediction.transaction_id)
-               .filter(FraudPrediction.risk_level.in_(['HIGH','CRITICAL'])).all()}
-    out=[build_profile(db,i,fraud_ids) for i in ids]
+    out=[build_profile(db,i) for i in ids]
     return [p for p in out if p is not None]

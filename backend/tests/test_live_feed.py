@@ -228,9 +228,9 @@ def test_audit_exposes_action_filters_and_prefix_search(client, admin_token):
     client.post("/api/v1/auth/login", json={
         "email": "nobody@fraudshield.ai", "password": "nope"})
 
-    audit = client.get("/api/v1/audit", headers={"Authorization": f"Bearer {admin_token}"}).json()
-    assert "auth.login" in audit["actions"]
-    assert "auth.login_failed" in audit["actions"]
+    actions = client.get("/api/v1/audit/actions", headers={"Authorization": f"Bearer {admin_token}"}).json()
+    assert "auth.login" in actions
+    assert "auth.login_failed" in actions
 
     filtered = client.get("/api/v1/audit?action=auth*",
                           headers={"Authorization": f"Bearer {admin_token}"}).json()

@@ -22,12 +22,19 @@ def _target_label(row: AuditLog, users: dict[int, str]) -> str | None:
     return None
 
 
+@router.get("/actions", response_model=list[str])
+def list_actions(db: Session = Depends(get_db), current_user: User = Depends(require_role(["admin"]))):
+    """Distinct action names, for the filter dropdown. Served separately so paging through the log
+    does not re-scan the whole table for them on every page."""
+    return sorted(a for (a,) in db.query(AuditLog.action).distinct().all())
+
+
 @router.get("", response_model=AuditLogListResponse)
 def list_audit_logs(
     user_id: int | None = None,
     action: str | None = None,
-    page: int = 1,
-    page_size: int = Query(default=20, le=200),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=200),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(["admin"])),
 ):
@@ -38,7 +45,8 @@ def list_audit_logs(
         # Accept a prefix so `auth` filters the whole auth family, and `auth.login_failed`
         # narrows to exactly that event.
         if action.endswith("*"):
-            query = query.filter(AuditLog.action.like(f"{action[:-1]}%"))
+            prefix = action[:-1].replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            query = query.filter(AuditLog.action.like(f"{prefix}%", escape="\\"))
         else:
             query = query.filter(AuditLog.action == action)
 
@@ -71,6 +79,4 @@ def list_audit_logs(
             created_at=row.created_at,
         ))
 
-    actions = sorted({a for (a,) in db.query(AuditLog.action).distinct().all()})
-    return AuditLogListResponse(items=out, total=total, page=page,
-                                page_size=page_size, actions=actions)
+    return AuditLogListResponse(items=out, total=total, page=page, page_size=page_size)

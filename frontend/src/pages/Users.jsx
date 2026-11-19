@@ -4,41 +4,52 @@
  */
 import { useEffect, useState } from 'react'
 import api from '../services/api'
+import { useAuth } from '../context/AuthContext'
 
 const ROLES = ['admin', 'analyst', 'user']
 
+const errorOf = (err, fallback) => err.response?.data?.error?.message || fallback
+
 export default function Users() {
+  const { user: me } = useAuth()
   const [users, setUsers] = useState([])
   const [form, setForm] = useState({ email: '', password: '', role: 'user' })
   const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   async function load() {
-    const { data } = await api.get('/users')
-    setUsers(data)
+    try {
+      const { data } = await api.get('/users')
+      setUsers(data)
+    } catch (err) {
+      setError(errorOf(err, 'Could not load users.'))
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
 
+  // Every action reports success or the server's reason for refusing, instead of failing silently.
+  async function run(fn, success, fallback) {
+    setError(null); setNotice(null)
+    try { await fn(); setNotice(success); await load() } catch (err) { setError(errorOf(err, fallback)); await load() }
+  }
+
   async function createUser(e) {
     e.preventDefault()
-    setError(null)
-    try {
-      await api.post('/users', form)
-      setForm({ email: '', password: '', role: 'user' })
-      load()
-    } catch (err) {
-      setError(err.response?.data?.error?.message || 'Failed to create user')
-    }
+    setSaving(true)
+    await run(async () => { await api.post('/users', form); setForm({ email: '', password: '', role: 'user' }) },
+      `Created ${form.email}.`, 'Failed to create user.')
+    setSaving(false)
   }
 
-  async function changeRole(id, role) {
-    await api.patch(`/users/${id}/role`, { role })
-    load()
-  }
-
-  async function removeUser(id) {
-    await api.delete(`/users/${id}`)
-    load()
+  const changeRole = (u, role) => run(() => api.patch(`/users/${u.id}/role`, { role }), `${u.email} is now ${role}.`, 'Could not change the role.')
+  const removeUser = (u) => {
+    if (!window.confirm(`Delete ${u.email}? This cannot be undone.`)) return
+    return run(() => api.delete(`/users/${u.id}`), `Deleted ${u.email}.`, 'Could not delete the user.')
   }
 
   return (
@@ -53,7 +64,7 @@ export default function Users() {
         </div>
         <div>
           <label className="text-xs text-slate-500 block mb-1">Password</label>
-          <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
+          <input required type="password" minLength={8} autoComplete="new-password" placeholder="8+ characters" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })}
             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white" />
         </div>
         <div>
@@ -63,11 +74,12 @@ export default function Users() {
             {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
-        <button type="submit" className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg px-4 py-1.5">
-          Create User
+        <button type="submit" disabled={saving} className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm rounded-lg px-4 py-1.5">
+          {saving ? 'Creating…' : 'Create User'}
         </button>
       </form>
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <div role="alert" className="text-sm text-red-300 bg-red-950/40 border border-red-900 rounded-lg px-3 py-2">{error}</div>}
+      {notice && !error && <div role="status" className="text-sm text-emerald-300 bg-emerald-950/30 border border-emerald-900 rounded-lg px-3 py-2">{notice}</div>}
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
@@ -77,21 +89,27 @@ export default function Users() {
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
+            {users.map((u) => {
+              const self = u.id === me?.id
+              return (
               <tr key={u.id} className="border-t border-slate-800">
-                <td className="py-2 px-4">{u.email}</td>
+                <td className="py-2 px-4">{u.email}{self && <span className="ml-2 text-xs rounded bg-indigo-950 text-indigo-300 px-1.5 py-0.5">You</span>}</td>
                 <td className="px-4">
-                  <select value={u.role} onChange={(e) => changeRole(u.id, e.target.value)}
-                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+                  <select value={u.role} disabled={self} title={self ? 'You cannot change your own role' : undefined} onChange={(e) => changeRole(u, e.target.value)}
+                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white disabled:opacity-50">
                     {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
                 </td>
                 <td className="px-4 text-slate-500">{new Date(u.created_at).toLocaleDateString()}</td>
                 <td className="px-4">
-                  <button onClick={() => removeUser(u.id)} className="text-xs text-red-400 hover:underline">Delete</button>
+                  {!self && <button onClick={() => removeUser(u)} className="text-xs text-red-400 hover:underline">Delete</button>}
                 </td>
               </tr>
-            ))}
+              )
+            })}
+            {!loading && users.length === 0 && (
+              <tr><td colSpan={4} className="py-6 px-4 text-center text-slate-500">No users yet.</td></tr>
+            )}
           </tbody>
         </table>
       </div>

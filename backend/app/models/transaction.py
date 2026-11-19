@@ -19,6 +19,7 @@ class Transaction(Base):
         Index("ix_transactions_user_id", "user_id"),
         Index("ix_transactions_created_at", "created_at"),
         Index("ix_transactions_status", "status"),
+        Index("ix_transactions_merchant_id", "merchant_id"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
