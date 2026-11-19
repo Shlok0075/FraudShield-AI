@@ -9,7 +9,7 @@
  * PaySim corpus (6.36M rows) is training data, not live volume, so it lives in
  * its own labelled panel and behind /dashboard/corpus-trends.
  */
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   LineChart, Line, PieChart, Pie, Cell, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -22,10 +22,12 @@ import { Link } from 'react-router-dom'
 
 const RISK_COLORS = { LOW: '#4ade80', MEDIUM: '#facc15', HIGH: '#fb923c', CRITICAL: '#f87171' }
 
+const REFRESH_MIN_MS = 5000   // at most one full dashboard reload per 5s
 const int = (n) => (typeof n === 'number' ? n.toLocaleString() : n)
 const pct = (n, d = 3) => (typeof n === 'number' ? n.toFixed(d) : n)
 
 export default function Dashboard() {
+  const refreshTimer = useRef(null)
   const [kpis, setKpis] = useState(null)
   const [trends, setTrends] = useState([])
   const [riskDist, setRiskDist] = useState([])
@@ -64,9 +66,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     const socket = getSocket()
+    // The feed emits a transaction every few seconds and each full reload is 7 requests.
+    // Reloading on every event kept the server busy answering the dashboard itself, so
+    // coalesce bursts into at most one reload per REFRESH_MIN_MS (trailing edge).
     const onNewTransaction = (payload) => {
       setLiveEvents((prev) => [{ type: 'transaction', ...payload }, ...prev].slice(0, 8))
-      loadAll()
+      if (refreshTimer.current) return
+      refreshTimer.current = setTimeout(() => {
+        refreshTimer.current = null
+        loadAll()
+      }, REFRESH_MIN_MS)
     }
     const onNewAlert = (payload) => {
       setLiveEvents((prev) => [{ type: 'alert', ...payload }, ...prev].slice(0, 8))
@@ -76,6 +85,10 @@ export default function Dashboard() {
     return () => {
       socket.off('new_transaction', onNewTransaction)
       socket.off('new_alert', onNewAlert)
+      if (refreshTimer.current) {
+        clearTimeout(refreshTimer.current)
+        refreshTimer.current = null
+      }
     }
   }, [loadAll])
 

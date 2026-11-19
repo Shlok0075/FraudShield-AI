@@ -93,6 +93,19 @@ def _step_datetime(step: int, epoch: int) -> datetime:
     return datetime.fromtimestamp(epoch + step * 3600, tz=timezone.utc)
 
 
+def _bucket_sql(dialect: str, column: str, granularity: str) -> str:
+    """SQL expression that truncates `column` to a day/hour label.
+
+    `strftime` only exists in SQLite; on Postgres (the production database) the same
+    query raised an error, so the trend chart never loaded there. Postgres uses to_char.
+    `granularity` only ever picks between two fixed literals, never user text.
+    """
+    hourly = granularity != "day"
+    if dialect == "postgresql":
+        return f"to_char({column}, '{'YYYY-MM-DD HH24:00' if hourly else 'YYYY-MM-DD'}')"
+    return f"strftime('{'%Y-%m-%d %H:00' if hourly else '%Y-%m-%d'}', {column})"
+
+
 @router.get("/kpis")
 def kpis(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Live-pipeline KPIs: counts per risk level in one grouped pass.
@@ -151,16 +164,16 @@ def trends(granularity: str = "day", db: Session = Depends(get_db),
     and starts empty, filling in as the feed runs. The corpus series is a
     separate, explicitly-labelled view at /dashboard/corpus-trends.
     """
-    fmt = "%Y-%m-%d" if granularity == "day" else "%Y-%m-%d %H:00"
+    bucket = _bucket_sql(db.get_bind().dialect.name, "t.created_at", granularity)
     rows = db.execute(text(f"""
-        SELECT strftime('{fmt}', t.created_at) AS bucket,
+        SELECT {bucket} AS bucket,
                COUNT(*) AS transactions,
                COALESCE(SUM(CASE WHEN f.risk_level = 'CRITICAL' THEN 1 ELSE 0 END), 0) AS fraud
         FROM transactions t
         LEFT JOIN fraud_predictions f ON f.transaction_id = t.id
         WHERE t.id >= 0
-        GROUP BY bucket
-        ORDER BY bucket
+        GROUP BY 1
+        ORDER BY 1
     """)).all()
     return {"granularity": granularity, "scope": "live",
             "series": [{"bucket": r[0], "transactions": r[1], "fraud": r[2]} for r in rows]}

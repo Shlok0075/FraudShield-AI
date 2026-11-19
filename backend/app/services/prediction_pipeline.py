@@ -11,6 +11,8 @@ built-in live feed (`services/live_feed.py`) and the HTTP endpoint drive
 simulator, any change to the pipeline had to be made twice, and the dashboard
 silently diverged from what the endpoint actually did.
 """
+import asyncio
+import threading
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -24,7 +26,7 @@ from app.models.case import FraudCase
 from app.models.transaction import Transaction
 from app.services.feature_engineering import build_features
 from app.services.investigation_service import run_investigation
-from app.websocket.socket_server import emit_new_alert, emit_new_transaction
+from app.websocket.socket_server import emit_investigation_complete, emit_new_alert, emit_new_transaction
 from fraudpipe.graph_engine import build_graph_features, record_transaction
 
 # Human-facing labels kept for API compatibility, alongside the normalized
@@ -35,17 +37,16 @@ CASE_PRIORITY = {"CRITICAL": "critical", "HIGH": "high",
                  "MEDIUM": "medium", "LOW": "low"}
 
 
-async def ingest_transaction(
-    db: Session,
-    payload: dict,
-    *,
-    emit: bool = True,
-) -> dict:
-    """Run one transaction through the full pipeline and return the result.
+# The scoring work below is blocking (DB queries, XGBoost, SHAP). Running it directly inside an
+# `async def` froze the entire event loop for its whole duration (~0.4s per transaction before
+# the merchant-count fix), so every dashboard request that arrived meanwhile had to wait. It now
+# runs in a worker thread. The lock serialises ingests: the in-memory graph engine and the
+# model's explainer are shared and not written for concurrent mutation.
+_INGEST_LOCK = threading.Lock()
 
-    `emit=False` suppresses the WebSocket broadcasts (used by tests and by
-    backfills that should not spam connected dashboards).
-    """
+
+def _score_and_persist(db: Session, payload: dict) -> tuple[dict, list[tuple[str, dict]]]:
+    """Blocking half of the pipeline. Returns (response, websocket_events_to_emit)."""
     # 1. Feature engineering MUST happen before the current transaction/device is
     # persisted. This prevents current-row leakage and lets the shared
     # FeatureEngine correctly identify a genuinely new device.
@@ -139,7 +140,7 @@ async def ingest_transaction(
     investigation = None
     if result["create_alert"] and result["decision"] in ("REVIEW", "BLOCK"):
         try:
-            investigation = run_investigation(db, alert.id, emit=True)
+            investigation = run_investigation(db, alert.id, emit=False)
             result["investigation"] = {
                 "decision": investigation["decision"],
                 "confidence": investigation["confidence"],
@@ -158,13 +159,17 @@ async def ingest_transaction(
         "status": txn.status,
         "created_at": (txn.created_at or datetime.now(timezone.utc)).isoformat(),
     }
-    if emit:
-        await emit_new_transaction(txn_payload)
-        if alert is not None:
-            await emit_new_alert({**txn_payload, "alert_id": alert.id,
-                                  "severity": alert.severity})
+    events: list[tuple[str, dict]] = [("transaction", txn_payload)]
+    if alert is not None:
+        events.append(("alert", {**txn_payload, "alert_id": alert.id, "severity": alert.severity}))
+    if investigation is not None:
+        events.append(("investigation", {
+            "alert_id": alert.id, "case_id": investigation["case_id"],
+            "decision": investigation["decision"], "confidence": investigation["confidence"],
+            "risk_level": investigation["risk_level"], "summary": investigation["summary"],
+        }))
 
-    return {
+    response = {
         "transaction_id": txn.id,
         "probability": result["probability"],
         "risk_score": result["risk_score"],
@@ -185,3 +190,31 @@ async def ingest_transaction(
         "investigation": investigation,
         "alert_id": alert.id if alert is not None else None,
     }
+    return response, events
+
+
+async def ingest_transaction(
+    db: Session,
+    payload: dict,
+    *,
+    emit: bool = True,
+) -> dict:
+    """Run one transaction through the full pipeline and return the result.
+
+    `emit=False` suppresses the WebSocket broadcasts (used by tests and by
+    backfills that should not spam connected dashboards).
+    """
+    def work():
+        with _INGEST_LOCK:
+            return _score_and_persist(db, payload)
+
+    response, events = await asyncio.to_thread(work)
+    if emit:
+        for kind, body in events:
+            if kind == "transaction":
+                await emit_new_transaction(body)
+            elif kind == "alert":
+                await emit_new_alert(body)
+            elif kind == "investigation":
+                await emit_investigation_complete(body)
+    return response
