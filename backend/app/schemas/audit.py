@@ -32,6 +32,3 @@ class AuditLogListResponse(BaseModel):
     total: int
     page: int
     page_size: int
-    # Distinct action names present, so the UI can offer a real filter instead
-    # of a hardcoded list that silently goes stale.
-    actions: list[str] = []

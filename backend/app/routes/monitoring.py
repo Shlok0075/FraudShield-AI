@@ -1,4 +1,6 @@
 from collections import Counter
+from datetime import datetime, timezone
+from sqlalchemy import func
 from math import log
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -37,14 +39,18 @@ def psi(expected, actual, bins=10):
 
 @router.get('/drift')
 def drift(db:Session=Depends(get_db),current_user=Depends(require_role(['admin','analyst']))):
-    preds=db.query(FraudPrediction).order_by(FraudPrediction.created_at.asc()).all()
-    scores=[p.probability for p in preds]
+    # Newest 50k probabilities only (column query, not ORM objects), oldest first for the PSI split.
+    recent=db.query(FraudPrediction.probability).order_by(FraudPrediction.id.desc()).limit(50000).all()
+    scores=[r[0] for r in reversed(recent)]
     if len(scores)<20:
         return {'status':'INSUFFICIENT_DATA','psi':0,'samples':len(scores),'message':'Need at least 20 predictions for a meaningful distribution comparison.'}
     cut=max(10,len(scores)//2); value=psi(scores[:cut],scores[cut:])
     status='NORMAL' if value<0.1 else 'WARNING' if value<0.25 else 'CRITICAL'
-    snap=DriftSnapshot(metric='prediction_probability_psi',value=value,status=status,details={'baseline_samples':cut,'current_samples':len(scores)-cut})
-    db.add(snap); db.commit()
+    # A snapshot is history, not a page-view counter: record one at most every 10 minutes.
+    last=db.query(func.max(DriftSnapshot.created_at)).filter(DriftSnapshot.metric=='prediction_probability_psi').scalar()
+    if last is None or (datetime.now(timezone.utc).replace(tzinfo=None)-last.replace(tzinfo=None)).total_seconds()>=600:
+        db.add(DriftSnapshot(metric='prediction_probability_psi',value=value,status=status,details={'baseline_samples':cut,'current_samples':len(scores)-cut}))
+        db.commit()
     return {'status':status,'psi':round(value,6),'samples':len(scores),'baseline_samples':cut,'current_samples':len(scores)-cut}
 
 @router.get('/drift/detector')
